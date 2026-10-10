@@ -76,7 +76,7 @@ html, body {
 .track:hover .track-play { opacity: 1; transform: translateY(0); }
 .track.playing .track-title { color: var(--green); }
 
-/* TRACK LIST (Search results) */
+/* TRACK LIST */
 .track-list { display: flex; flex-direction: column; gap: 4px; }
 .track-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
 .track-row:hover { background: var(--bg3); }
@@ -198,7 +198,7 @@ const JIOSAAVN_API = 'https://saavnapi-nine.vercel.app';
 let tracks = [];
 let currentIndex = -1;
 let currentGenre = '';
-let currentSource = 'jamendo'; // 'jamendo' or 'jiosaavn'
+let currentSource = 'jamendo';
 let shuffleOn = false;
 let repeatOn = false;
 const audio = new Audio();
@@ -291,12 +291,10 @@ function renderGenres() {
 // LOAD TRACKS — MAIN ROUTER
 // ══════════════════════════════════════════════════════════
 async function loadTracks(searchQuery = '') {
-  // If JioSaavn source active → use JioSaavn
   if (currentSource === 'jiosaavn') {
     return loadJioSaavn(searchQuery);
   }
 
-  // Otherwise use Jamendo
   el.tracksArea.className = 'tracks';
   el.tracksArea.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>Loading music…</div>';
 
@@ -336,21 +334,18 @@ async function loadTracks(searchQuery = '') {
 }
 
 // ══════════════════════════════════════════════════════════
-// JIOSAAVN — Indian Music with Language Support
+// JIOSAAVN — with smart deduplication
 // ══════════════════════════════════════════════════════════
 async function loadJioSaavn(searchQuery = '') {
   el.tracksArea.className = 'track-list';
   el.tracksArea.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>Loading Indian music…</div>';
 
-  // Build query list
   let queries = [];
   if (searchQuery) {
-    // User searched — search directly
     el.tracksTitle.textContent = `🔍 "${searchQuery}"`;
     el.tracksSub.textContent = 'Search results (Indian)';
     queries = [searchQuery];
   } else {
-    // Genre/language filter
     const langMap = {
       'indian-all': { label: '🇮🇳 All Indian Music', queries: ['Tamil hits', 'Malayalam hits', 'Hindi hits', 'Telugu hits'] },
       'malayalam': { label: '🌴 Malayalam Songs', queries: ['Malayalam hits', 'Malayalam melodies', 'Malayalam new songs'] },
@@ -366,9 +361,26 @@ async function loadJioSaavn(searchQuery = '') {
 
   try {
     const allTracks = [];
-    const seen = new Set();
+    const seenIds = new Set();
+    const seenTitles = new Set();
 
-    // Fetch from all queries in parallel
+    // Clean title: remove "From 'X'", [Tamil], punctuation, etc.
+    const cleanTitle = (title) => String(title || '')
+      .toLowerCase()
+      .replace(/\(.*?\)/g, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Clean artist: take first artist only, normalize
+    const cleanArtist = (artist) => String(artist || '')
+      .toLowerCase()
+      .split(/[,&]/)[0]
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
     const results = await Promise.allSettled(
       queries.map(q =>
         fetch(`${JIOSAAVN_API}/result?query=${encodeURIComponent(q)}`).then(r => r.json())
@@ -381,10 +393,22 @@ async function loadJioSaavn(searchQuery = '') {
       const list = Array.isArray(data) ? data : (data.data || data.results || []);
       list.forEach(song => {
         const id = song.id;
-        if (!id || seen.has(id)) return;
-        seen.add(id);
+        const title = song.song || song.title || '';
+        const artist = song.primary_artists || song.singers || '';
+
+        // Skip duplicates by ID
+        if (!id || seenIds.has(id)) return;
+
+        // Skip duplicates by title+artist combo
+        const key = cleanTitle(title) + '|' + cleanArtist(artist);
+        if (seenTitles.has(key)) return;
+
         const audio = song.media_url || song.url || '';
         if (!audio) return;
+
+        seenIds.add(id);
+        seenTitles.add(key);
+
         allTracks.push({
           id,
           title: song.song || song.title || 'Unknown',
@@ -396,7 +420,7 @@ async function loadJioSaavn(searchQuery = '') {
       });
     });
 
-    // Shuffle
+    // Shuffle for variety
     for (let i = allTracks.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [allTracks[i], allTracks[j]] = [allTracks[j], allTracks[i]];
@@ -550,7 +574,6 @@ el.progressWrap.addEventListener('click', (e) => {
   audio.currentTime = pct * audio.duration;
 });
 
-// Search
 let searchTimer;
 el.searchInput.addEventListener('input', () => {
   clearTimeout(searchTimer);
@@ -562,7 +585,6 @@ el.searchInput.addEventListener('input', () => {
   }, 500);
 });
 
-// Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
