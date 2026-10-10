@@ -484,7 +484,6 @@ const GENRES = [
   { label: 'Ambient', value: 'ambient' },
   { label: 'World', value: 'world' },
   { label: 'Soundtrack', value: 'soundtrack' },
-  { label: 'Soundtrack', value: 'soundtrack' },
   { label: '🇮🇳 Indian', value: 'indian' },
 ];
 
@@ -752,25 +751,71 @@ document.addEventListener('keydown', (e) => {
 // ══════════════════════════════════════════════════════════
 // JIOSAAVN — Indian Music (Tamil, Malayalam, Hindi)
 // ══════════════════════════════════════════════════════════
-async function loadJioSaavn() {
+// ══════════════════════════════════════════════════════════
+// JIOSAAVN — Indian Music (Tamil, Malayalam, Hindi, Telugu)
+// ══════════════════════════════════════════════════════════
+let jiosaavnOffset = 0;
+async function loadJioSaavn(loadMore = false) {
+  if (!loadMore) jiosaavnOffset = 0;
+
   el.tracksArea.className = 'tracks';
-  el.tracksArea.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>Loading Indian music…</div>';
   el.tracksTitle.textContent = '🇮🇳 Indian Music';
   el.tracksSub.textContent = 'Tamil · Malayalam · Hindi · Telugu';
 
-  try {
-    const res = await fetch('https://saavnapi-nine.vercel.app/result?query=Malayalam%20Tamil%20hits');
-    const data = await res.json();
-    const list = Array.isArray(data) ? data : (data.data || data.results || []);
+  if (!loadMore) {
+    el.tracksArea.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>Loading Indian music…</div>';
+  }
 
-    tracks = list.map(song => ({
-      id: song.id,
-      title: song.song || song.title || 'Unknown',
-      artist: song.primary_artists || song.singers || 'Unknown',
-      art: song.image || '',
-      audio: song.media_url || song.url || '',
-      duration: parseInt(song.duration) || 0,
-    })).filter(t => t.audio);
+  // Multiple queries to get more songs
+  const queries = [
+    'Tamil hits',
+    'Malayalam hits',
+    'Hindi hits',
+    'Telugu hits',
+    'AR Rahman',
+    'Ilaiyaraaja',
+  ];
+
+  try {
+    const allTracks = [];
+    const seen = new Set();
+
+    // Fetch from all queries in parallel
+    const results = await Promise.allSettled(
+      queries.map(q =>
+        fetch(`https://saavnapi-nine.vercel.app/result?query=${encodeURIComponent(q)}`)
+          .then(r => r.json())
+      )
+    );
+
+    results.forEach(r => {
+      if (r.status !== 'fulfilled') return;
+      const data = r.value;
+      const list = Array.isArray(data) ? data : (data.data || data.results || []);
+      list.forEach(song => {
+        const id = song.id;
+        if (!id || seen.has(id)) return;   // skip duplicates
+        seen.add(id);
+        const audio = song.media_url || song.url || '';
+        if (!audio) return;
+        allTracks.push({
+          id,
+          title: song.song || song.title || 'Unknown',
+          artist: song.primary_artists || song.singers || 'Unknown',
+          art: song.image || '',
+          audio,
+          duration: parseInt(song.duration) || 0,
+        });
+      });
+    });
+
+    // Shuffle so it doesn't always start with the same songs
+    for (let i = allTracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allTracks[i], allTracks[j]] = [allTracks[j], allTracks[i]];
+    }
+
+    tracks = allTracks;
 
     if (!tracks.length) {
       el.tracksArea.innerHTML = '<div class="empty" style="grid-column:1/-1;">No songs found.</div>';
