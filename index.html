@@ -484,6 +484,8 @@ const GENRES = [
   { label: 'Ambient', value: 'ambient' },
   { label: 'World', value: 'world' },
   { label: 'Soundtrack', value: 'soundtrack' },
+  { label: 'Soundtrack', value: 'soundtrack' },
+  { label: '🇮🇳 Indian', value: 'indian' },
 ];
 
 // ══════════════════════════════════════════════════════════
@@ -559,10 +561,12 @@ async function loadTracks(searchQuery = '') {
   el.tracksArea.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>Loading music…</div>';
 
   let url;
-  if (searchQuery) {
+    if (searchQuery) {
     url = `${API}/tracks/?client_id=${CLIENT_ID}&format=json&limit=24&search=${encodeURIComponent(searchQuery)}&include=musicinfo&audioformat=mp32`;
     el.tracksTitle.textContent = `🔍 "${searchQuery}"`;
     el.tracksSub.textContent = 'Search results';
+  } else if (currentGenre === 'indian') {
+    return loadJioSaavn();
   } else if (currentGenre) {
     url = `${API}/tracks/?client_id=${CLIENT_ID}&format=json&limit=24&tags=${encodeURIComponent(currentGenre)}&order=popularity_total&include=musicinfo&audioformat=mp32`;
     const g = GENRES.find(x => x.value === currentGenre);
@@ -745,6 +749,39 @@ document.addEventListener('keydown', (e) => {
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// JIOSAAVN — Indian Music (Tamil, Malayalam, Hindi)
+// ══════════════════════════════════════════════════════════
+async function loadJioSaavn() {
+  el.tracksArea.className = 'tracks';
+  el.tracksArea.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>Loading Indian music…</div>';
+  el.tracksTitle.textContent = '🇮🇳 Indian Music';
+  el.tracksSub.textContent = 'Tamil · Malayalam · Hindi · Telugu';
+
+  try {
+    const res = await fetch('https://saavnapi-nine.vercel.app/result?query=Malayalam%20Tamil%20hits');
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : (data.data || data.results || []);
+
+    tracks = list.map(song => ({
+      id: song.id,
+      title: song.song || song.title || 'Unknown',
+      artist: song.primary_artists || song.singers || 'Unknown',
+      art: song.image || '',
+      audio: song.media_url || song.url || '',
+      duration: parseInt(song.duration) || 0,
+    })).filter(t => t.audio);
+
+    if (!tracks.length) {
+      el.tracksArea.innerHTML = '<div class="empty" style="grid-column:1/-1;">No songs found.</div>';
+      return;
+    }
+    renderTracks();
+  } catch (err) {
+    console.error(err);
+    el.tracksArea.innerHTML = `<div class="empty" style="grid-column:1/-1;">⚠️ Error: ${esc(err.message)}</div>`;
+  }
+}
 renderGenres();
 loadTracks();
 </script>
