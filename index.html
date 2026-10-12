@@ -592,7 +592,7 @@ async function loadJamendo(reset) {
 }
 
 // ══════════════════════════════════════════════════════════
-// RENDER TRACKS (main list)
+// RENDER TRACKS (main list) — FIXED FAVORITE ICON
 // ══════════════════════════════════════════════════════════
 function renderTracks() {
   if (!tracks.length) {
@@ -603,6 +603,7 @@ function renderTracks() {
   el.tracksArea.className = 'track-list';
   let html = tracks.map((t, i) => {
     const fav = isFavorite(t) ? 'active' : '';
+    const favIcon = isFavorite(t) ? '❤️' : '🤍';
     const dl = downloadedTracks[tid(t)] ? '📥' : '⬇';
     return `
       <div class="track-row ${i === currentIndex ? 'playing' : ''}" data-idx="${i}">
@@ -612,7 +613,7 @@ function renderTracks() {
           <div class="track-row-artist">${esc(t.artist)}</div>
         </div>
         <div class="track-row-actions">
-          <button class="track-action-btn ${fav}" data-action="fav" data-idx="${i}" title="Favorite">❤️</button>
+          <button class="track-action-btn ${fav}" data-action="fav" data-idx="${i}" title="Favorite">${favIcon}</button>
           <button class="track-action-btn" data-action="download" data-idx="${i}" title="Download">${dl}</button>
           <button class="track-action-btn" data-action="addpl" data-idx="${i}" title="Add to playlist">➕</button>
         </div>
@@ -655,18 +656,24 @@ function renderTracks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// FAVORITES
+// FAVORITES — FIXED ICON SWAP
 // ══════════════════════════════════════════════════════════
 function toggleFavorite(track, btn) {
   const id = tid(track);
   const idx = favorites.findIndex(f => tid(f) === id);
   if (idx >= 0) {
     favorites.splice(idx, 1);
-    if (btn) btn.classList.remove('active');
+    if (btn) {
+      btn.classList.remove('active');
+      btn.textContent = '🤍';
+    }
     showToast('💔 Removed from favorites');
   } else {
     favorites.push(track);
-    if (btn) btn.classList.add('active');
+    if (btn) {
+      btn.classList.add('active');
+      btn.textContent = '❤️';
+    }
     showToast('❤️ Added to favorites');
   }
   saveFavorites();
@@ -674,7 +681,7 @@ function toggleFavorite(track, btn) {
 
 function renderFavorites() {
   if (!favorites.length) {
-    el.favoritesArea.innerHTML = '<div class="empty">No favorites yet. Tap ❤️ on any song.</div>';
+    el.favoritesArea.innerHTML = '<div class="empty">No favorites yet. Tap 🤍 on any song.</div>';
     return;
   }
   el.favoritesArea.className = 'track-list';
@@ -989,7 +996,6 @@ el.lyricsBtn.addEventListener('click', async () => {
   openModal(`📝 ${t.title}`, '<div class="spinner"></div>');
 
   try {
-    // Try lyrics.ovh
     const artist = t.artist.split(',')[0].trim();
     const title = t.title.replace(/\(.*?\)/g, '').trim();
     const res = await fetch(`${LYRICS_API}/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`);
@@ -1108,7 +1114,6 @@ el.searchInput.addEventListener('input', () => {
       jamendoOffset = 0;
       lastQueryIndex = -1;
       tracks = [];
-      // Switch to browse view
       document.querySelector('.tab[data-tab="browse"]').click();
       loadTracks(true);
     }
