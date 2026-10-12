@@ -2188,6 +2188,7 @@ function togglePlay() {
   else audio.pause();
 }
 function nextTrack() {
+  // 1. Queue takes priority
   if (queue.length) {
     const next = queue.shift();
     const idx = tracks.findIndex(t => tid(t) === tid(next));
@@ -2199,9 +2200,23 @@ function nextTrack() {
     renderQueue();
     return;
   }
+
   if (!tracks.length) return;
-  if (shuffleOn) playTrack(Math.floor(Math.random() * tracks.length));
-  else playTrack((currentIndex + 1) % tracks.length);
+
+  // 2. Shuffle mode — pick random
+  if (shuffleOn) {
+    playTrack(Math.floor(Math.random() * tracks.length));
+    return;
+  }
+
+  // 3. If we're at the last song, auto-load more then continue
+  if (currentIndex >= tracks.length - 1) {
+    autoLoadAndPlayNext();
+    return;
+  }
+
+  // 4. Normal advance
+  playTrack(currentIndex + 1);
 }
 function prevTrack() {
   if (!tracks.length) return;
