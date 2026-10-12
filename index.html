@@ -205,6 +205,36 @@
   body.amoled .player { background: linear-gradient(180deg, #0a0a0a, #000); }
   .player.show { display: block; }
 
+.player-close {
+  position: absolute;
+  top: 6px; right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--light);
+  font-size: 14px;
+  font-weight: 700;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: none;   /* hidden by default — only shows on mobile */
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  z-index: 5;
+}
+.player-close:hover,
+.player-close:active {
+  background: rgba(255,255,255,0.15);
+  color: var(--text);
+}
+
+/* Show close button only on mobile */
+@media (max-width: 700px) {
+  .player-close { display: flex; }
+  .player { padding-top: 8px; }   /* tiny bit of extra room for the close button */
+  .player-main { padding-right: 4px; }  /* don't overlap */
+}
+
   .progress-wrap {
     width: 100%; height: 4px; background: rgba(255,255,255,0.15);
     border-radius: 4px; margin-bottom: 12px; position: relative;
@@ -775,6 +805,7 @@
     <div class="progress-head" id="progressHead"></div>
     <div class="scrub-time" id="scrubTime">0:00</div>
   </div>
+  <button class="player-close" id="playerClose" title="Close player">✕</button>
   <div class="player-main">
     <img class="player-art" id="playerArt" src="" alt="" title="Tap for full screen">
     <div class="player-info" id="playerInfo" title="Tap for full screen">
@@ -2223,6 +2254,40 @@ el.repeatBtn.addEventListener('click', () => {
 el.queueBtn.addEventListener('click', renderQueue);
 el.playerArt.addEventListener('click', openNowPlaying);
 el.playerInfo.addEventListener('click', openNowPlaying);
+
+// ══════════════════════════════════════════════════════════
+// CLOSE PLAYER BAR (mobile)
+// ══════════════════════════════════════════════════════════
+const playerCloseBtn = document.getElementById('playerClose');
+if (playerCloseBtn) {
+  playerCloseBtn.addEventListener('click', () => {
+    // Stop audio
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = '';
+
+    // Hide player bar
+    el.player.classList.remove('show');
+
+    // Clear now playing UI
+    el.playerTitle.textContent = '—';
+    el.playerArtist.textContent = '—';
+    el.playerArt.src = '';
+    el.npTitle.textContent = '—';
+    el.npArtist.textContent = '—';
+    el.npArt.src = '';
+
+    // Reset current track
+    currentIndex = -1;
+
+    // Reset progress
+    el.progressBar.style.width = '0%';
+    el.progressHead.style.left = '0%';
+    el.playerTime.textContent = '0:00 / 0:00';
+
+    showToast('⏹ Player closed');
+  });
+}
 
 // ══════════════════════════════════════════════════════════
 // FULL-SCREEN NOW PLAYING
