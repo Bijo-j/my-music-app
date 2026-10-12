@@ -1879,6 +1879,11 @@ function openModal(title, html) {
   el.modalTitle.textContent = title;
   el.modalBody.innerHTML = html;
   el.modalBackdrop.classList.add('show');
+  // Lock body scroll
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.style.top = `-${window.scrollY}px`;
 }
 function closeModal() {
   el.modalBackdrop.classList.remove('show');
