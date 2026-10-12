@@ -223,8 +223,25 @@
     const s = Math.floor(sec % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   }
-  function esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function decodeEntities(str) {
+  return String(str || '')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ');
+}
+function esc(s) {
+  // First decode any HTML entities coming from API, then escape for safety
+  const decoded = decodeEntities(s);
+  return String(decoded)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
   }
   function placeholderArt() {
     return "data:image/svg+xml;utf8," + encodeURIComponent(
