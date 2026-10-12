@@ -905,6 +905,7 @@ const SAAVN_API = 'https://saavn-api-37ao.vercel.app/api';
 const JAMENDO_CLIENT_ID = '6509f2f9';
 const JAMENDO_API = 'https://api.jamendo.com/v3.0';
 const LYRICS_API = 'https://api.lyrics.ovh/v1';
+const ITUNES_API = 'https://itunes.apple.com';
 
 // ══════════════════════════════════════════════════════════
 // STATE
@@ -1209,8 +1210,34 @@ async function loadSaavn(reset) {
   const results = json?.data?.results || [];
   saavnPage++;
 
-  const existingIds = new Set(tracks.map(t => t.id));
-  const seenKeys = new Set(tracks.map(t => (t.title + '|' + t.artist).toLowerCase()));
+    const existingIds = new Set(tracks.map(t => t.id));
+
+  // Normalize title: strip (From "Movie"), [Tamil], (Remix), punctuation, extra spaces
+  function normalizeTitle(title) {
+    return String(title || '')
+      .toLowerCase()
+      .replace(/\(.*?\)/g, '')           // (From "Narivetta")
+      .replace(/\[.*?\]/g, '')           // [Tamil], [HD]
+      .replace(/&quot;.*?&quot;/g, '')   // &quot;Movie&quot;
+      .replace(/["'].*?["']/g, '')       // "Movie" with real quotes
+      .replace(/\b(remix|cover|version|reprise|live|unplugged|instrumental|remastered|edit)\b/gi, '')
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function normalizeArtist(artist) {
+    return String(artist || '')
+      .toLowerCase()
+      .split(/[,&]/)[0]                  // first artist only
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Build seen-keys using normalized title+artist
+  const seenKeys = new Set(tracks.map(t =>
+    normalizeTitle(t.title) + '|' + normalizeArtist(t.artist)
+  ));
   const newTracks = [];
 
   results.forEach(song => {
@@ -1231,16 +1258,67 @@ async function loadSaavn(reset) {
     else if (song.media_url) audioUrl = song.media_url;
     if (!audioUrl) return;
 
+    // ── IMAGE EXTRACTION ──
     let art = '';
-    if (Array.isArray(song.image)) art = song.image[song.image.length - 1]?.link || song.image[0]?.link || '';
-    else if (typeof song.image === 'string') art = song.image;
+    let usedArtistImage = false;
 
-    const key = (title + '|' + artist).toLowerCase();
+    // 1. Album image
+    if (song.album?.image) {
+      if (Array.isArray(song.album.image) && song.album.image.length) {
+        const hq = song.album.image.find(i => i.quality === '500x500') ||
+                   song.album.image[song.album.image.length - 1];
+        art = hq?.link || hq?.url || '';
+      } else if (typeof song.album.image === 'string') {
+        art = song.album.image;
+      }
+    }
+
+    // 2. Song image
+    if (!art && song.image) {
+      if (Array.isArray(song.image) && song.image.length) {
+        const hq = song.image.find(i => i.quality === '500x500') ||
+                   song.image[song.image.length - 1];
+        art = hq?.link || hq?.url || '';
+      } else if (typeof song.image === 'string') {
+        art = song.image;
+      }
+    }
+
+    // 3. Artist image fallback
+    if (!art && song.artists?.primary?.[0]?.image) {
+      const artistImgs = song.artists.primary[0].image;
+      if (Array.isArray(artistImgs) && artistImgs.length) {
+        const hq = artistImgs.find(i => i.quality === '500x500') ||
+                   artistImgs[artistImgs.length - 1];
+        art = hq?.link || hq?.url || '';
+        usedArtistImage = true;
+      } else if (typeof artistImgs === 'string') {
+        art = artistImgs;
+        usedArtistImage = true;
+      }
+    }
+
+        const key = normalizeTitle(title) + '|' + normalizeArtist(artist);
     if (seenKeys.has(key)) return;
 
     existingIds.add(id);
     seenKeys.add(key);
-    newTracks.push({ id, title, artist, art, audio: audioUrl, duration: parseInt(song.duration) || 0 });
+
+    const track = {
+      id, title, artist, art, audio: audioUrl,
+      duration: parseInt(song.duration) || 0,
+    };
+    newTracks.push(track);
+
+    // If we only got artist image, fetch real album art from iTunes
+    if (usedArtistImage || !art) {
+      fetchItunesAlbumArt(title, artist).then(url => {
+        if (url) {
+          track.art = url;
+          updateTrackArt(id, url);
+        }
+      }).catch(() => {});
+    }
   });
 
   tracks = tracks.concat(newTracks);
@@ -1249,6 +1327,42 @@ async function loadSaavn(reset) {
     return;
   }
   renderTracks();
+}
+
+// ── iTunes album art fetcher ──
+async function fetchItunesAlbumArt(title, artist) {
+  try {
+    const cleanTitle = String(title).replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim();
+    const primaryArtist = String(artist).split(',')[0].trim();
+    const q = `${cleanTitle} ${primaryArtist}`;
+    const res = await fetch(`${ITUNES_API}/search?term=${encodeURIComponent(q)}&media=music&limit=1`);
+    if (!res.ok) return '';
+    const data = await res.json();
+    if (data.results && data.results[0]) {
+      return (data.results[0].artworkUrl100 || '').replace('100x100bb', '600x600bb').replace('100x100', '600x600');
+    }
+  } catch (e) {}
+  return '';
+}
+
+// ── Update a track's art in the DOM after background fetch ──
+function updateTrackArt(id, url) {
+  const track = tracks.find(t => t.id === id);
+  if (track) track.art = url;
+
+  document.querySelectorAll('.track-row').forEach(row => {
+    const idx = parseInt(row.dataset.idx);
+    if (!isNaN(idx) && tracks[idx]?.id === id) {
+      const img = row.querySelector('.track-row-art');
+      if (img) img.src = url;
+    }
+  });
+
+  if (currentIndex >= 0 && tracks[currentIndex]?.id === id) {
+    el.playerArt.src = url;
+    el.npArt.src = url;
+    el.npBg.style.backgroundImage = `url('${url}')`;
+  }
 }
 
 async function loadJamendo(reset) {
@@ -2733,7 +2847,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// HANDLE BACK GESTURE — closes overlays instead of leaving app
+// HANDLE BACK GESTURE
 // ══════════════════════════════════════════════════════════
 window.addEventListener('popstate', (e) => {
   if (el.nowPlaying.classList.contains('show')) {
