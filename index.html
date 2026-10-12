@@ -1236,8 +1236,27 @@ async function loadSaavn(reset) {
   const res = await fetch(url);
   if (!res.ok) throw new Error('API returned ' + res.status);
   const json = await res.json();
-  const results = json?.data?.results || [];
+    const rawResults = json?.data?.results || [];
   saavnPage++;
+
+  // Filter results by language to keep the genre pure
+  const LANG_FILTERS = {
+    'malayalam': ['malayalam'],
+    'tamil': ['tamil'],
+    'hindi': ['hindi'],
+    'telugu': ['telugu'],
+    'indian-all': ['malayalam', 'tamil', 'hindi', 'telugu', 'kannada', 'punjabi', 'bengali', 'marathi'],
+  };
+  const allowedLangs = LANG_FILTERS[currentGenre];
+
+  const results = allowedLangs
+    ? rawResults.filter(song => {
+        const songLang = String(song.language || '').toLowerCase().trim();
+        // If API doesn't return language, keep the song (don't over-filter)
+        if (!songLang) return true;
+        return allowedLangs.some(l => songLang.includes(l));
+      })
+    : rawResults;
 
   const existingIds = new Set(tracks.map(t => t.id));
 
