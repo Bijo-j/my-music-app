@@ -219,20 +219,46 @@
   .progress-wrap.scrubbing { height: 44px; }
 }
 
-  .waveform-canvas {
+.waveform-canvas {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    display: block; pointer-events: none;
+    display: none; pointer-events: none;
     opacity: 0.4;
-  }
+}
+/* Show waveform on desktop */
+@media (min-width: 700px) {
+  .waveform-canvas { display: block; }
+}
+/* Always show waveform inside full-screen Now Playing */
+.now-playing .waveform-canvas { display: block; }
+/* Now Playing always uses the tall look */
+.now-playing .progress-wrap {
+  height: 14px !important;
+  background: transparent !important;
+  margin-bottom: 0 !important;
+}
+@media (min-width: 700px) {
+  .waveform-canvas { display: block; }
+}
+/* Always show inside full-screen Now Playing */
+.now-playing .waveform-canvas { display: block; }
   .progress-bar {
     position: absolute; top: 0; bottom: 0; left: 0;
-    background: linear-gradient(90deg, var(--green) 0%, var(--green-bright) 100%);
+    background: var(--green);
     border-radius: 4px; width: 0%; transition: width 0.1s linear;
+    pointer-events: none;
+}
+@media (min-width: 700px) {
+  .progress-bar {
+    background: linear-gradient(90deg, var(--green) 0%, var(--green-bright) 100%);
     opacity: 0.85;
     -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 2%, black 100%, transparent 100%);
     mask-image: linear-gradient(90deg, transparent 0%, black 2%, black 100%, transparent 100%);
-    pointer-events: none;
   }
+}
+.now-playing .progress-bar {
+  background: linear-gradient(90deg, var(--green) 0%, var(--green-bright) 100%);
+  opacity: 0.85;
+}
   .progress-wrap.scrubbing .progress-bar { transition: none; }
   .progress-head {
     position: absolute; top: 50%; transform: translate(-50%, -50%);
