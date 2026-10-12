@@ -7,32 +7,21 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   :root {
-    --bg: #121212;
-    --bg2: #181818;
-    --bg3: #282828;
-    --green: #1DB954;
-    --text: #ffffff;
-    --dim: #b3b3b3;
-    --light: #a7a7a7;
+    --bg: #121212; --bg2: #181818; --bg3: #282828;
+    --green: #1DB954; --text: #ffffff; --light: #a7a7a7;
   }
   html, body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-    padding-bottom: 120px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden; padding-bottom: 120px;
   }
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
 
   .header {
-    position: sticky; top: 0;
-    background: rgba(18,18,18,0.95);
-    backdrop-filter: blur(20px);
-    z-index: 100;
-    padding: 12px 16px;
+    position: sticky; top: 0; background: rgba(18,18,18,0.95);
+    backdrop-filter: blur(20px); z-index: 100; padding: 12px 16px;
     display: flex; align-items: center; gap: 12px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
@@ -62,16 +51,6 @@
   .genre-chip:hover { background: #3e3e3e; }
   .genre-chip.active { background: var(--green); color: #000; font-weight: 700; }
 
-  .tracks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-  .track { background: var(--bg2); border-radius: 8px; padding: 12px; cursor: pointer; transition: background 0.2s; position: relative; }
-  .track:hover { background: var(--bg3); }
-  .track-art { width: 100%; aspect-ratio: 1; border-radius: 6px; background: linear-gradient(135deg, #333, #555); object-fit: cover; margin-bottom: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); display: block; }
-  .track-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
-  .track-artist { font-size: 12px; color: var(--light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .track-play { position: absolute; bottom: 70px; right: 20px; width: 44px; height: 44px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; }
-  .track:hover .track-play { opacity: 1; transform: translateY(0); }
-  .track.playing .track-title { color: var(--green); }
-
   .track-list { display: flex; flex-direction: column; gap: 4px; }
   .track-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
   .track-row:hover { background: var(--bg3); }
@@ -83,20 +62,10 @@
   .track-row-artist { font-size: 12px; color: var(--light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .load-more {
-    grid-column: 1 / -1;
-    text-align: center;
-    margin-top: 16px;
-    padding: 12px;
-    background: var(--bg3);
-    border: none;
-    border-radius: 30px;
-    color: var(--text);
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.2s;
-    font-family: inherit;
-    letter-spacing: 0.5px;
+    grid-column: 1 / -1; text-align: center; margin-top: 16px; padding: 12px;
+    background: var(--bg3); border: none; border-radius: 30px;
+    color: var(--text); font-weight: 600; font-size: 14px; cursor: pointer;
+    transition: background 0.2s; font-family: inherit; letter-spacing: 0.5px;
   }
   .load-more:hover { background: #3e3e3e; }
   .load-more:disabled { opacity: 0.5; pointer-events: none; }
@@ -135,14 +104,8 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   @media (max-width: 500px) {
-    .logo { font-size: 14px; }
-    .logo::before { font-size: 18px; }
+    .logo { font-size: 14px; } .logo::before { font-size: 18px; }
     .section-title { font-size: 18px; }
-    .tracks { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-    .track { padding: 10px; }
-    .track-title { font-size: 12px; }
-    .track-artist { font-size: 11px; }
-    .track-play { bottom: 60px; right: 16px; width: 38px; height: 38px; }
   }
 </style>
 </head>
@@ -160,18 +123,15 @@
     <div class="section-title">Browse Genres</div>
     <div class="genres" id="genreList"></div>
   </div>
-
   <div class="section">
     <div class="section-title" id="tracksTitle">🔥 Trending Now</div>
     <div class="section-sub" id="tracksSub">Popular tracks</div>
-    <div id="tracksArea" class="tracks"></div>
+    <div id="tracksArea" class="track-list"></div>
   </div>
 </div>
 
 <div class="player" id="player">
-  <div class="progress-wrap" id="progressWrap">
-    <div class="progress-bar" id="progressBar"></div>
-  </div>
+  <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
   <div class="player-main">
     <img class="player-art" id="playerArt" src="" alt="" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2260%22 font-size=%2240%22 text-anchor=%22middle%22>🎵</text></svg>'">
     <div class="player-info">
@@ -179,11 +139,11 @@
       <div class="player-artist" id="playerArtist">—</div>
     </div>
     <div class="player-controls">
-      <button class="pc-btn" id="shuffleBtn" title="Shuffle">🔀</button>
-      <button class="pc-btn" id="prevBtn" title="Previous">⏮</button>
-      <button class="pc-btn play" id="playBtn" title="Play/Pause">▶</button>
-      <button class="pc-btn" id="nextBtn" title="Next">⏭</button>
-      <button class="pc-btn" id="repeatBtn" title="Repeat">🔁</button>
+      <button class="pc-btn" id="shuffleBtn">🔀</button>
+      <button class="pc-btn" id="prevBtn">⏮</button>
+      <button class="pc-btn play" id="playBtn">▶</button>
+      <button class="pc-btn" id="nextBtn">⏭</button>
+      <button class="pc-btn" id="repeatBtn">🔁</button>
     </div>
     <div class="player-time" id="playerTime">0:00 / 0:00</div>
   </div>
@@ -193,12 +153,11 @@
 
 <script>
   // ══════════════════════════════════════════════════════════
-  // CONFIG
+  // CONFIG — Using saavn.dev (reliable public JioSaavn API)
   // ══════════════════════════════════════════════════════════
   const JAMENDO_CLIENT_ID = '6509f2f9';
   const JAMENDO_API = 'https://api.jamendo.com/v3.0';
-  // JioSaavn unofficial public API (works from browser)
-  const JIOSAAVN_API = 'https://jiosavan-api-with-playlist.vercel.app/api';
+  const SAAVN_API = 'https://saavn.dev/api';
 
   // ══════════════════════════════════════════════════════════
   // STATE
@@ -206,20 +165,17 @@
   let tracks = [];
   let currentIndex = -1;
   let currentGenre = '';
-  let currentSource = 'jamendo';   // 'jamendo' | 'jiosaavn'
+  let currentSource = 'jamendo';
   let shuffleOn = false;
   let repeatOn = false;
   let currentSearch = '';
   let isLoading = false;
-  let page = 0;                    // for jiosaavn pagination
+  let page = 0;
   let jamendoOffset = 0;
 
   const audio = new Audio();
   audio.preload = 'auto';
 
-  // ══════════════════════════════════════════════════════════
-  // GENRES
-  // ══════════════════════════════════════════════════════════
   const GENRES = [
     { label: '🔥 Trending', value: '', source: 'jamendo' },
     { label: 'Pop', value: 'pop', source: 'jamendo' },
@@ -235,9 +191,6 @@
     { label: '🎭 Telugu', value: 'telugu', source: 'jiosaavn' },
   ];
 
-  // ══════════════════════════════════════════════════════════
-  // ELEMENTS
-  // ══════════════════════════════════════════════════════════
   const el = {
     genreList: document.getElementById('genreList'),
     tracksTitle: document.getElementById('tracksTitle'),
@@ -259,9 +212,6 @@
     toast: document.getElementById('toast'),
   };
 
-  // ══════════════════════════════════════════════════════════
-  // UTILITIES
-  // ══════════════════════════════════════════════════════════
   function showToast(msg, ms = 2000) {
     el.toast.textContent = msg;
     el.toast.classList.add('show');
@@ -283,9 +233,6 @@
     );
   }
 
-  // ══════════════════════════════════════════════════════════
-  // RENDER GENRES
-  // ══════════════════════════════════════════════════════════
   function renderGenres() {
     el.genreList.innerHTML = GENRES.map(g =>
       `<button class="genre-chip ${g.value === currentGenre && !currentSearch ? 'active' : ''}" data-genre="${g.value}" data-source="${g.source}">${g.label}</button>`
@@ -305,9 +252,6 @@
     });
   }
 
-  // ══════════════════════════════════════════════════════════
-  // LOAD TRACKS — ROUTER
-  // ══════════════════════════════════════════════════════════
   async function loadTracks(reset = true) {
     if (isLoading) return;
     isLoading = true;
@@ -318,43 +262,41 @@
       tracks = [];
       currentIndex = -1;
       el.tracksArea.className = 'track-list';
-      el.tracksArea.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>Loading music…</div>';
-    } else {
-      const btn = el.tracksArea.querySelector('.load-more');
-      if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+      el.tracksArea.innerHTML = '<div class="loading"><div class="spinner"></div>Loading music…</div>';
     }
 
     try {
       if (currentSource === 'jiosaavn') {
-        await loadJioSaavn(reset);
+        await loadSaavn(reset);
       } else {
         await loadJamendo(reset);
       }
     } catch (err) {
       console.error(err);
-      el.tracksArea.innerHTML = `<div class="empty" style="grid-column:1/-1;">Could not load music.<br><small style="opacity:.6;">${esc(err.message)}</small></div>`;
+      el.tracksArea.innerHTML = `<div class="empty">Could not load music.<br><small style="opacity:.6;">${esc(err.message)}</small></div>`;
     } finally {
       isLoading = false;
+      const btn = el.tracksArea.querySelector('.load-more');
+      if (btn) { btn.textContent = '⬇ Load more songs'; btn.disabled = false; }
     }
   }
 
   // ══════════════════════════════════════════════════════════
-  // JIOSAAVN loader — with pagination & dedup
+  // SAAVN.DEV LOADER (works reliably from browser)
   // ══════════════════════════════════════════════════════════
-  async function loadJioSaavn(reset) {
-    // Language-based queries (we keep them as search queries because the API is search-based)
+  async function loadSaavn(reset) {
     const langMap = {
-      'indian-all': { label: '🇮🇳 All Indian Music', queries: ['Tamil hits', 'Malayalam hits', 'Hindi hits', 'Telugu hits'] },
-      'malayalam': { label: '🌴 Malayalam Songs', queries: ['Malayalam hits', 'Malayalam melodies', 'Malayalam new songs', 'Malayalam evergreen'] },
-      'tamil': { label: '🎬 Tamil Songs', queries: ['Tamil hits', 'Tamil melodies', 'Tamil new songs', 'Tamil evergreen'] },
-      'hindi': { label: '🎵 Hindi Songs', queries: ['Hindi hits', 'Bollywood songs', 'Hindi new songs', 'Hindi evergreen'] },
-      'telugu': { label: '🎭 Telugu Songs', queries: ['Telugu hits', 'Telugu melodies', 'Telugu new songs', 'Telugu evergreen'] },
+      'indian-all': { label: '🇮🇳 All Indian Music', queries: ['arijit singh', 'shreya ghoshal', 'ar rahman', 'kishore kumar'] },
+      'malayalam': { label: '🌴 Malayalam Songs', queries: ['malayalam hits', 'kj yesudas', 'm g sreekumar', 'shreya ghoshal malayalam'] },
+      'tamil': { label: '🎬 Tamil Songs', queries: ['tamil hits', 'ar rahman tamil', 'anirudh', 'ilaiyaraaja'] },
+      'hindi': { label: '🎵 Hindi Songs', queries: ['hindi hits', 'bollywood', 'arijit singh', 'lata mangeshkar'] },
+      'telugu': { label: '🎭 Telugu Songs', queries: ['telugu hits', 'ss thaman', 'devi sri prasad', 'sid sriram'] },
     };
 
     let queries = [];
     if (currentSearch) {
       el.tracksTitle.textContent = `🔍 "${currentSearch}"`;
-      el.tracksSub.textContent = 'Search results (Indian)';
+      el.tracksSub.textContent = 'Search results';
       queries = [currentSearch];
     } else {
       const info = langMap[currentGenre] || langMap['indian-all'];
@@ -363,66 +305,74 @@
       queries = info.queries;
     }
 
-    const allTracks = [];
-    const seenIds = new Set(tracks.map(t => t.id));
-    const seenTitles = new Set(tracks.map(t => (t.title + '|' + t.artist).toLowerCase()));
-
-    const cleanTitle = (title) => String(title || '')
-      .toLowerCase().replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '')
-      .replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-    const cleanArtist = (artist) => String(artist || '')
-      .toLowerCase().split(/[,&]/)[0].replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-
-    // For pagination we cycle through queries using the page counter
-    const qIndex = page % queries.length;
-    const query = queries[qIndex];
-    // increment page for next call
+    const query = queries[page % queries.length];
     page++;
 
-    // JioSaavn API: /search/songs?query=...&page=0&limit=20
-    const url = `${JIOSAAVN_API}/search/songs?query=${encodeURIComponent(query)}&page=0&limit=30`;
+    // saavn.dev search endpoint
+    const url = `${SAAVN_API}/search/songs?query=${encodeURIComponent(query)}&page=0&limit=40`;
     const res = await fetch(url);
+    if (!res.ok) throw new Error('API returned ' + res.status);
     const json = await res.json();
-    const list = json.data?.results || json.results || (Array.isArray(json) ? json : []);
 
+    // saavn.dev response: { success: true, data: { results: [...] } }
+    const list = json?.data?.results || [];
+
+    const existingIds = new Set(tracks.map(t => t.id));
+    const seenKeys = new Set(tracks.map(t => (t.title + '|' + t.artist).toLowerCase()));
+
+    const newTracks = [];
     list.forEach(song => {
       const id = song.id;
-      const title = song.name || song.song || song.title || '';
-      const artist = song.primaryArtists || song.primary_artists || song.singers || song.artist || '';
-      const audioUrl = song.downloadUrl?.[2]?.link || song.downloadUrl?.[0]?.link || song.media_url || song.url || '';
-      const art = song.image?.[2]?.link || song.image?.[0]?.link || song.image || '';
-      const duration = parseInt(song.duration) || 0;
+      if (!id || existingIds.has(id)) return;
 
-      if (!id || !audioUrl) return;
-      if (seenIds.has(id)) return;
+      const title = song.name || '';
+      const artist = song.primaryArtists || song.primaryArtistsId || (song.artists?.primary?.map(a => a.name).join(', ')) || 'Unknown';
 
-      const key = cleanTitle(title) + '|' + cleanArtist(artist);
-      if (seenTitles.has(key)) return;
+      // saavn.dev gives downloadUrl as array of {quality, link}
+      let audioUrl = '';
+      if (Array.isArray(song.downloadUrl)) {
+        // pick highest quality (usually last)
+        audioUrl = song.downloadUrl[song.downloadUrl.length - 1]?.link || song.downloadUrl[0]?.link || '';
+      } else if (typeof song.downloadUrl === 'string') {
+        audioUrl = song.downloadUrl;
+      }
+      if (!audioUrl) return;
 
-      seenIds.add(id);
-      seenTitles.add(key);
+      // image
+      let art = '';
+      if (Array.isArray(song.image)) {
+        art = song.image[song.image.length - 1]?.link || song.image[0]?.link || '';
+      } else if (typeof song.image === 'string') {
+        art = song.image;
+      }
 
-      allTracks.push({
+      const key = (title + '|' + artist).toLowerCase();
+      if (seenKeys.has(key)) return;
+
+      existingIds.add(id);
+      seenKeys.add(key);
+
+      newTracks.push({
         id,
         title,
         artist,
         art,
         audio: audioUrl,
-        duration,
+        duration: parseInt(song.duration) || 0,
       });
     });
 
-    tracks = tracks.concat(allTracks);
+    tracks = tracks.concat(newTracks);
 
     if (!tracks.length) {
-      el.tracksArea.innerHTML = '<div class="empty" style="grid-column:1/-1;">No songs found. Try another search.</div>';
+      el.tracksArea.innerHTML = '<div class="empty">No songs found. Try another search or genre.</div>';
       return;
     }
     renderTracks();
   }
 
   // ══════════════════════════════════════════════════════════
-  // JAMENDO loader — with pagination
+  // JAMENDO LOADER
   // ══════════════════════════════════════════════════════════
   async function loadJamendo(reset) {
     const LIMIT = 30;
@@ -455,7 +405,6 @@
       duration: parseInt(t.duration) || 0,
     })).filter(t => t.audio);
 
-    // dedup
     const existingIds = new Set(tracks.map(t => t.id));
     const filtered = newTracks.filter(t => !existingIds.has(t.id));
     tracks = tracks.concat(filtered);
@@ -463,18 +412,15 @@
     jamendoOffset += LIMIT;
 
     if (!tracks.length) {
-      el.tracksArea.innerHTML = '<div class="empty" style="grid-column:1/-1;">No tracks found.</div>';
+      el.tracksArea.innerHTML = '<div class="empty">No tracks found.</div>';
       return;
     }
     renderTracks();
   }
 
-  // ══════════════════════════════════════════════════════════
-  // RENDER TRACKS (always list view)
-  // ══════════════════════════════════════════════════════════
   function renderTracks() {
     if (!tracks.length) {
-      el.tracksArea.innerHTML = '<div class="empty" style="grid-column:1/-1;">No tracks found.</div>';
+      el.tracksArea.innerHTML = '<div class="empty">No tracks found.</div>';
       return;
     }
 
@@ -507,9 +453,6 @@
     }
   }
 
-  // ══════════════════════════════════════════════════════════
-  // PLAYBACK
-  // ══════════════════════════════════════════════════════════
   function playTrack(idx) {
     if (idx < 0 || idx >= tracks.length) return;
     currentIndex = idx;
@@ -538,11 +481,8 @@
 
   function nextTrack() {
     if (!tracks.length) return;
-    if (shuffleOn) {
-      playTrack(Math.floor(Math.random() * tracks.length));
-    } else {
-      playTrack((currentIndex + 1) % tracks.length);
-    }
+    if (shuffleOn) playTrack(Math.floor(Math.random() * tracks.length));
+    else playTrack((currentIndex + 1) % tracks.length);
   }
 
   function prevTrack() {
@@ -555,18 +495,11 @@
     el.playBtn.textContent = audio.paused ? '▶' : '⏸';
   }
 
-  // ══════════════════════════════════════════════════════════
-  // AUDIO EVENTS
-  // ══════════════════════════════════════════════════════════
   audio.addEventListener('play', updatePlayButton);
   audio.addEventListener('pause', updatePlayButton);
   audio.addEventListener('ended', () => {
-    if (repeatOn) {
-      audio.currentTime = 0;
-      audio.play();
-    } else {
-      nextTrack();
-    }
+    if (repeatOn) { audio.currentTime = 0; audio.play(); }
+    else nextTrack();
   });
   audio.addEventListener('error', () => showToast('⚠️ Playback error'));
   audio.addEventListener('timeupdate', () => {
@@ -580,9 +513,6 @@
     el.playerTime.textContent = `0:00 / ${fmtTime(audio.duration)}`;
   });
 
-  // ══════════════════════════════════════════════════════════
-  // CONTROLS
-  // ══════════════════════════════════════════════════════════
   el.playBtn.addEventListener('click', togglePlay);
   el.nextBtn.addEventListener('click', nextTrack);
   el.prevBtn.addEventListener('click', prevTrack);
@@ -613,10 +543,9 @@
         currentSearch = q;
         if (q) {
           currentGenre = '';
-          currentSource = 'jiosaavn';   // search across JioSaavn (bigger catalog)
+          currentSource = 'jiosaavn';
           renderGenres();
         } else {
-          // revert to default trending
           currentSource = 'jamendo';
           currentGenre = '';
           renderGenres();
@@ -636,9 +565,6 @@
     if (e.code === 'ArrowLeft') prevTrack();
   });
 
-  // ══════════════════════════════════════════════════════════
-  // INIT
-  // ══════════════════════════════════════════════════════════
   renderGenres();
   loadTracks(true);
 </script>
