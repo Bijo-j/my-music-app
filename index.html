@@ -2113,6 +2113,8 @@ el.playerInfo.addEventListener('click', openNowPlaying);
 // ══════════════════════════════════════════════════════════
 // FULL-SCREEN NOW PLAYING
 // ══════════════════════════════════════════════════════════
+let npHistoryPushed = false;
+
 function openNowPlaying() {
   if (currentIndex < 0) {
     showToast('Play a song first');
@@ -2122,8 +2124,14 @@ function openNowPlaying() {
   requestAnimationFrame(() => el.nowPlaying.classList.add('slide-in'));
   syncNowPlayingHeart();
   drawWaveform(el.npWaveCanvas);
+
+  if (!npHistoryPushed) {
+    history.pushState({ nowPlaying: true }, '');
+    npHistoryPushed = true;
+  }
 }
-function closeNowPlaying() {
+
+function closeNowPlaying(fromHistory = false) {
   el.nowPlaying.classList.remove('slide-in');
   setTimeout(() => {
     el.nowPlaying.classList.remove('show');
@@ -2134,7 +2142,15 @@ function closeNowPlaying() {
     document.body.style.height = '';
     document.documentElement.style.overflow = '';
   }, 350);
+
+  if (npHistoryPushed && !fromHistory) {
+    npHistoryPushed = false;
+    history.back();
+  } else {
+    npHistoryPushed = false;
+  }
 }
+
 el.npClose.addEventListener('click', closeNowPlaying);
 el.npPlayBtn.addEventListener('click', togglePlay);
 el.npPrevBtn.addEventListener('click', prevTrack);
@@ -2400,7 +2416,6 @@ function applyAudioSettings() {
   }
 }
 
-// EQ modal — no full refresh, just updates values
 function openEqModal() {
   if (!audioCtx) setupAudioChain();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -2434,7 +2449,6 @@ function openEqModal() {
   `;
   openModal('🎚️ Audio Effects', html);
 
-  // Update button UI without re-opening modal
   const updatePresetUI = () => {
     el.modalBody.querySelectorAll('[data-preset]').forEach(b => {
       b.classList.toggle('active', b.dataset.preset === eqPreset);
@@ -2626,14 +2640,22 @@ function updateSleepBadge() {
 // MODAL
 // ══════════════════════════════════════════════════════════
 let savedScrollY = 0;
+let modalHistoryPushed = false;
+
 function openModal(title, html) {
   el.modalTitle.textContent = title;
   el.modalBody.innerHTML = html;
   el.modalBackdrop.classList.add('show');
   savedScrollY = window.scrollY || window.pageYOffset || 0;
   document.body.style.overflow = 'hidden';
+
+  if (!modalHistoryPushed) {
+    history.pushState({ modal: true }, '');
+    modalHistoryPushed = true;
+  }
 }
-function closeModal() {
+
+function closeModal(fromHistory = false) {
   if (!el.modalBackdrop.classList.contains('show')) return;
   el.modalBackdrop.classList.remove('show');
   document.body.style.overflow = '';
@@ -2643,7 +2665,15 @@ function closeModal() {
   document.body.style.height = '';
   document.documentElement.style.overflow = '';
   window.scrollTo(0, savedScrollY);
+
+  if (modalHistoryPushed && !fromHistory) {
+    modalHistoryPushed = false;
+    history.back();
+  } else {
+    modalHistoryPushed = false;
+  }
 }
+
 el.modalClose.addEventListener('click', closeModal);
 el.modalBackdrop.addEventListener('click', (e) => {
   if (e.target === el.modalBackdrop) closeModal();
@@ -2703,7 +2733,21 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// GLOBAL SCROLL WATCHDOG — always keep body scrollable
+// HANDLE BACK GESTURE — closes overlays instead of leaving app
+// ══════════════════════════════════════════════════════════
+window.addEventListener('popstate', (e) => {
+  if (el.nowPlaying.classList.contains('show')) {
+    closeNowPlaying(true);
+    return;
+  }
+  if (el.modalBackdrop.classList.contains('show')) {
+    closeModal(true);
+    return;
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// GLOBAL SCROLL WATCHDOG
 // ══════════════════════════════════════════════════════════
 setInterval(() => {
   const modalOpen = el.modalBackdrop.classList.contains('show');
