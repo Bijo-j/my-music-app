@@ -18,12 +18,11 @@
   html, body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg); color: var(--text);
-    min-height: 100vh; overflow-x: hidden; padding-bottom: 200px;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 200px;
     transition: background 0.3s;
-    overscroll-behavior-y: contain;
-  }
-  body.no-pull {
-    overscroll-behavior: none;
   }
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
@@ -31,21 +30,22 @@
 
   .header {
     position: sticky; top: 0; background: rgba(18,18,18,0.95);
-    backdrop-filter: blur(20px); z-index: 100; padding: 12px 16px;
-    display: flex; align-items: center; gap: 12px;
+    backdrop-filter: blur(20px); z-index: 100; padding: 10px 12px;
+    display: flex; align-items: center; gap: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
+    flex-wrap: nowrap;
   }
   body.amoled .header { background: rgba(0,0,0,0.95); }
-  .logo { font-size: 18px; font-weight: 800; color: var(--green); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-  .logo::before { content: '🎵'; font-size: 22px; }
-  .search { flex: 1; position: relative; }
+  .logo { font-size: 15px; font-weight: 800; color: var(--green); display: flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; }
+  .logo::before { content: '🎵'; font-size: 18px; }
+  .search { flex: 1; position: relative; min-width: 0; }
   .search input {
     width: 100%; background: var(--bg3); border: none; outline: none;
-    color: var(--text); padding: 10px 16px 10px 40px; border-radius: 24px;
-    font-size: 14px; font-family: inherit;
+    color: var(--text); padding: 9px 12px 9px 36px; border-radius: 20px;
+    font-size: 14px; font-family: inherit; box-sizing: border-box;
   }
   .search input::placeholder { color: var(--light); }
-  .search::before { content: '🔍'; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none; z-index: 2; }
+  .search::before { content: '🔍'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none; z-index: 2; }
 
   .icon-btn {
     background: none; border: none; color: var(--text);
@@ -53,23 +53,27 @@
     border-radius: 50%; transition: background 0.2s, transform 0.1s;
     display: flex; align-items: center; justify-content: center;
     width: 36px; height: 36px;
+    flex-shrink: 0;
   }
   .icon-btn:hover { background: var(--bg3); }
   .icon-btn:active { transform: scale(0.9); }
 
   .suggestions {
-    position: absolute; top: 100%; left: 0; right: 0;
-    background: var(--bg2); border-radius: 0 0 12px 12px;
-    max-height: 300px; overflow-y: auto;
+    position: absolute; top: 100%; left: 0;
+    min-width: 260px; right: auto;
+    background: var(--bg2); border-radius: 12px;
+    max-height: 320px; overflow-y: auto;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     z-index: 150; display: none;
     margin-top: 4px;
+    border: 1px solid rgba(255,255,255,0.08);
   }
   .suggestions.show { display: block; }
   .suggestion-item {
-    padding: 10px 16px; cursor: pointer; font-size: 13px;
+    padding: 10px 14px; cursor: pointer; font-size: 13px;
     display: flex; align-items: center; gap: 10px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
+    min-height: 40px;
   }
   .suggestion-item:last-child { border-bottom: none; }
   .suggestion-item:hover { background: var(--bg3); }
@@ -211,7 +215,6 @@
   .progress-wrap:hover { height: 6px; }
   .progress-wrap.scrubbing { height: 8px; }
 
-  /* Waveform only on larger screens */
   @media (min-width: 700px) {
     .progress-wrap {
       height: 32px; background: transparent; margin-bottom: 6px;
@@ -322,9 +325,7 @@
   .pc-btn.small:hover { opacity: 1; }
   .pc-btn.small.on { opacity: 1; }
 
-  .pc-btn.control svg {
-    width: 22px; height: 22px;
-  }
+  .pc-btn.control svg { width: 22px; height: 22px; }
 
   .pc-btn.play {
     background: white;
@@ -346,10 +347,7 @@
     box-shadow: 0 6px 16px rgba(30,215,96,0.35);
   }
   .pc-btn.play:active { transform: scale(0.95); }
-  .pc-btn.play svg {
-    width: 20px; height: 20px;
-    margin-left: 2px;
-  }
+  .pc-btn.play svg { width: 20px; height: 20px; margin-left: 2px; }
   .pc-btn.play.playing svg { margin-left: 0; }
 
   .pc-btn .btn-label {
@@ -438,18 +436,6 @@
   .eq-slider { display: flex; flex-direction: column; gap: 6px; }
   .eq-slider-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
   .eq-slider-label .eq-val { color: var(--green); font-variant-numeric: tabular-nums; }
-  .eq-slider input[type="range"] {
-    -webkit-appearance: none; width: 100%; height: 4px;
-    background: var(--bg3); border-radius: 2px; outline: none;
-  }
-  .eq-slider input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px;
-    background: var(--green); border-radius: 50%; cursor: pointer;
-  }
-  .eq-slider input[type="range"]::-moz-range-thumb {
-    width: 16px; height: 16px; background: var(--green);
-    border-radius: 50%; cursor: pointer; border: none;
-  }
 
   /* ═══════ FULL-SCREEN NOW PLAYING ═══════ */
   .now-playing {
@@ -538,9 +524,7 @@
   }
   .np-artist:hover { color: var(--green); text-decoration: underline; }
 
-  .np-progress {
-    padding: 16px 0 8px;
-  }
+  .np-progress { padding: 16px 0 8px; }
   .np-times {
     display: flex; justify-content: space-between;
     font-size: 11px; color: rgba(255,255,255,0.6);
@@ -587,7 +571,7 @@
   }
   .np-extra .np-btn svg { width: 22px; height: 22px; }
 
-  /* ═══════ STATS DASHBOARD ═══════ */
+  /* ═══════ STATS ═══════ */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -642,17 +626,9 @@
     color: var(--light); font-size: 13px;
   }
 
-  .artist-header {
-    padding: 20px 0;
-    text-align: center;
-  }
-  .artist-name {
-    font-size: 22px; font-weight: 800;
-    margin-bottom: 4px;
-  }
-  .artist-count {
-    font-size: 13px; color: var(--light);
-  }
+  .artist-header { padding: 20px 0; text-align: center; }
+  .artist-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .artist-count { font-size: 13px; color: var(--light); }
 
   .context-menu {
     position: fixed; background: var(--bg2); border-radius: 10px;
@@ -698,7 +674,9 @@
   .sleep-badge.show { display: block; }
 
   @media (max-width: 700px) {
-    .logo { font-size: 14px; } .logo::before { font-size: 18px; }
+    .header { padding: 8px 10px; gap: 6px; }
+    .logo { font-size: 12px; } .logo::before { font-size: 16px; }
+    .icon-btn { width: 32px; height: 32px; font-size: 15px; padding: 4px; }
     .section-title { font-size: 18px; }
     .player { padding: 8px 10px 10px; }
     .player-main { gap: 8px; flex-wrap: wrap; }
@@ -725,6 +703,11 @@
 
     .np-title { font-size: 18px; }
     .np-btn.play { width: 60px; height: 60px; }
+
+    .suggestions {
+      position: fixed; top: auto; left: 10px; right: 10px;
+      min-width: 0; max-width: none;
+    }
   }
 </style>
 </head>
@@ -938,7 +921,6 @@ let saavnPage = 0;
 let jamendoOffset = 0;
 let lastQueryIndex = -1;
 let currentView = 'browse';
-let currentArtistFilter = null;
 
 let recentTracks = JSON.parse(localStorage.getItem('recent') || '[]');
 let searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
@@ -1078,13 +1060,22 @@ function fmtTime(sec) {
 }
 function decodeEntities(str) {
   return String(str || '')
-    .replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .replace(/&nbsp;/g, ' ');
 }
 function esc(s) {
   const d = decodeEntities(s);
-  return String(d).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(d)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 function placeholderArt() {
   return "data:image/svg+xml;utf8," + encodeURIComponent(
@@ -1131,7 +1122,6 @@ function renderGenres() {
       currentGenre = btn.dataset.genre;
       currentSource = btn.dataset.source;
       currentSearch = '';
-      currentArtistFilter = null;
       el.searchInput.value = '';
       saavnPage = 0;
       jamendoOffset = 0;
@@ -1310,12 +1300,7 @@ async function loadJamendo(reset) {
 function openArtistPage(artistName) {
   if (!artistName || artistName === 'Unknown') return;
   const primary = artistName.split(',')[0].trim().toLowerCase();
-  const artistTracks = tracks.filter(t => {
-    const a = (t.artist || '').toLowerCase();
-    return a.includes(primary);
-  });
-
-  currentArtistFilter = artistName;
+  const artistTracks = tracks.filter(t => (t.artist || '').toLowerCase().includes(primary));
 
   let html = `
     <div class="artist-header">
@@ -1328,7 +1313,7 @@ function openArtistPage(artistName) {
     html += '<div class="empty">No songs from this artist in the current list.</div>';
   } else {
     html += artistTracks.map((t, i) => `
-      <div class="queue-item" data-artist-idx="${i}">
+      <div class="queue-item">
         <img class="queue-art" src="${esc(t.art) || placeholderArt()}" onerror="this.src='${placeholderArt()}'">
         <div class="queue-info">
           <div class="queue-title">${esc(t.title)}</div>
@@ -1364,9 +1349,7 @@ function openStatsDashboard() {
   const totalPlays = Object.values(playCounts).reduce((a, b) => a + b, 0);
   const totalHours = (totalPlaySeconds / 3600).toFixed(1);
 
-  const topSongs = Object.entries(playCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+  const topSongs = Object.entries(playCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
   const artistCounts = {};
   Object.entries(playCounts).forEach(([key, count]) => {
@@ -1375,31 +1358,17 @@ function openStatsDashboard() {
     if (!primary) return;
     artistCounts[primary] = (artistCounts[primary] || 0) + count;
   });
-  const topArtists = Object.entries(artistCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+  const topArtists = Object.entries(artistCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
   const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
   const thisWeek = playSessions.filter(s => s.timestamp > weekAgo).length;
 
   let html = `
     <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value">${totalPlays}</div>
-        <div class="stat-label">Total Plays</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${totalHours}h</div>
-        <div class="stat-label">Listening Time</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${totalSongs}</div>
-        <div class="stat-label">Unique Songs</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${thisWeek}</div>
-        <div class="stat-label">This Week</div>
-      </div>
+      <div class="stat-card"><div class="stat-value">${totalPlays}</div><div class="stat-label">Total Plays</div></div>
+      <div class="stat-card"><div class="stat-value">${totalHours}h</div><div class="stat-label">Listening Time</div></div>
+      <div class="stat-card"><div class="stat-value">${totalSongs}</div><div class="stat-label">Unique Songs</div></div>
+      <div class="stat-card"><div class="stat-value">${thisWeek}</div><div class="stat-label">This Week</div></div>
     </div>
   `;
 
@@ -1427,9 +1396,7 @@ function openStatsDashboard() {
     html += topArtists.map(([artist, count], i) => `
       <div class="stat-row">
         <div class="stat-num">${i + 1}</div>
-        <div class="stat-row-main">
-          <div class="stat-row-title">${esc(artist)}</div>
-        </div>
+        <div class="stat-row-main"><div class="stat-row-title">${esc(artist)}</div></div>
         <div class="stat-row-count">${count}×</div>
       </div>
     `).join('');
@@ -1439,11 +1406,7 @@ function openStatsDashboard() {
     html += '<div class="stats-empty">No stats yet.<br>Play some songs and come back!</div>';
   }
 
-  html += `
-    <div style="margin-top:20px;text-align:center;">
-      <button class="load-more" id="resetStatsBtn">🗑 Reset Stats</button>
-    </div>
-  `;
+  html += `<div style="margin-top:20px;text-align:center;"><button class="load-more" id="resetStatsBtn">🗑 Reset Stats</button></div>`;
 
   openModal('📊 Your Stats', html);
 
@@ -1781,7 +1744,6 @@ function performSearch(q) {
   currentSearch = q;
   currentGenre = '';
   currentSource = 'jiosaavn';
-  currentArtistFilter = null;
   el.suggestions.classList.remove('show');
   renderGenres();
   saavnPage = 0;
@@ -2148,25 +2110,6 @@ el.queueBtn.addEventListener('click', renderQueue);
 el.playerArt.addEventListener('click', openNowPlaying);
 el.playerInfo.addEventListener('click', openNowPlaying);
 
-// Safety net to prevent stuck body scroll
-function forceUnlockBody() {
-  if (!el.modalBackdrop.classList.contains('show') && !el.nowPlaying.classList.contains('show')) {
-    if (document.body.style.position === 'fixed') {
-      const y = parseInt(document.body.style.top || '0') * -1;
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      window.scrollTo(0, y);
-    }
-  }
-}
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.modal-backdrop') && !e.target.closest('.now-playing')) forceUnlockBody();
-}, true);
-
 // ══════════════════════════════════════════════════════════
 // FULL-SCREEN NOW PLAYING
 // ══════════════════════════════════════════════════════════
@@ -2184,9 +2127,14 @@ function closeNowPlaying() {
   el.nowPlaying.classList.remove('slide-in');
   setTimeout(() => {
     el.nowPlaying.classList.remove('show');
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.height = '';
+    document.documentElement.style.overflow = '';
   }, 350);
 }
-
 el.npClose.addEventListener('click', closeNowPlaying);
 el.npPlayBtn.addEventListener('click', togglePlay);
 el.npPrevBtn.addEventListener('click', prevTrack);
@@ -2229,7 +2177,7 @@ el.npArtist.addEventListener('click', () => {
 });
 
 // ══════════════════════════════════════════════════════════
-// SWIPE-DOWN ON NOW PLAYING (very responsive)
+// SWIPE-DOWN ON NOW PLAYING
 // ══════════════════════════════════════════════════════════
 let npTouchStartY = 0;
 let npTouchStartX = 0;
@@ -2315,11 +2263,8 @@ function drawWaveform(canvas) {
     const y = mid - barH / 2;
     const r = Math.min(1.5, barW / 2);
     ctx.beginPath();
-    if (ctx.roundRect) {
-      ctx.roundRect(x + barW * 0.15, y, barW * 0.7, barH, r);
-    } else {
-      ctx.rect(x + barW * 0.15, y, barW * 0.7, barH);
-    }
+    if (ctx.roundRect) ctx.roundRect(x + barW * 0.15, y, barW * 0.7, barH, r);
+    else ctx.rect(x + barW * 0.15, y, barW * 0.7, barH);
     ctx.fill();
   }
 }
@@ -2455,7 +2400,8 @@ function applyAudioSettings() {
   }
 }
 
-el.eqBtn.addEventListener('click', () => {
+// EQ modal — no full refresh, just updates values
+function openEqModal() {
   if (!audioCtx) setupAudioChain();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 
@@ -2472,21 +2418,51 @@ el.eqBtn.addEventListener('click', () => {
     </div>
 
     <div class="eq-slider boost">
-      <div class="eq-slider-label"><span>🔥 Bass Boost</span><span class="eq-val">${bassBoostEnabled ? 'ON' : 'OFF'}</span></div>
+      <div class="eq-slider-label"><span>🔥 Bass Boost</span><span class="eq-val" id="bbVal">${bassBoostEnabled ? 'ON' : 'OFF'}</span></div>
       <button class="timer-option ${bassBoostEnabled ? 'active' : ''}" id="bassBoostBtn" style="margin-top:6px;">${bassBoostEnabled ? 'Disable Bass Boost' : 'Enable Bass Boost'}</button>
     </div>
 
     <div class="eq-slider">
-      <div class="eq-slider-label"><span>🔊 Normalize Volume</span><span class="eq-val">${normalizeEnabled ? 'ON' : 'OFF'}</span></div>
+      <div class="eq-slider-label"><span>🔊 Normalize Volume</span><span class="eq-val" id="normVal">${normalizeEnabled ? 'ON' : 'OFF'}</span></div>
       <button class="timer-option ${normalizeEnabled ? 'active' : ''}" id="normalizeBtn" style="margin-top:6px;">${normalizeEnabled ? 'Disable Normalize' : 'Enable Normalize'}</button>
     </div>
 
     <div class="eq-slider">
-      <div class="eq-slider-label"><span>🔀 Crossfade</span><span class="eq-val">${crossfadeEnabled ? 'ON' : 'OFF'}</span></div>
+      <div class="eq-slider-label"><span>🔀 Crossfade</span><span class="eq-val" id="cfVal">${crossfadeEnabled ? 'ON' : 'OFF'}</span></div>
       <button class="timer-option ${crossfadeEnabled ? 'active' : ''}" id="crossfadeBtn" style="margin-top:6px;">${crossfadeEnabled ? 'Disable Crossfade' : 'Enable Crossfade'}</button>
     </div>
   `;
   openModal('🎚️ Audio Effects', html);
+
+  // Update button UI without re-opening modal
+  const updatePresetUI = () => {
+    el.modalBody.querySelectorAll('[data-preset]').forEach(b => {
+      b.classList.toggle('active', b.dataset.preset === eqPreset);
+    });
+    const bb = document.getElementById('bassBoostBtn');
+    const bv = document.getElementById('bbVal');
+    if (bb) {
+      bb.classList.toggle('active', bassBoostEnabled);
+      bb.textContent = bassBoostEnabled ? 'Disable Bass Boost' : 'Enable Bass Boost';
+    }
+    if (bv) bv.textContent = bassBoostEnabled ? 'ON' : 'OFF';
+
+    const nb = document.getElementById('normalizeBtn');
+    const nv = document.getElementById('normVal');
+    if (nb) {
+      nb.classList.toggle('active', normalizeEnabled);
+      nb.textContent = normalizeEnabled ? 'Disable Normalize' : 'Enable Normalize';
+    }
+    if (nv) nv.textContent = normalizeEnabled ? 'ON' : 'OFF';
+
+    const cb = document.getElementById('crossfadeBtn');
+    const cv = document.getElementById('cfVal');
+    if (cb) {
+      cb.classList.toggle('active', crossfadeEnabled);
+      cb.textContent = crossfadeEnabled ? 'Disable Crossfade' : 'Enable Crossfade';
+    }
+    if (cv) cv.textContent = crossfadeEnabled ? 'ON' : 'OFF';
+  };
 
   setTimeout(() => {
     el.modalBody.querySelectorAll('[data-preset]').forEach(btn => {
@@ -2494,35 +2470,40 @@ el.eqBtn.addEventListener('click', () => {
         eqPreset = btn.dataset.preset;
         localStorage.setItem('eqPreset', eqPreset);
         applyAudioSettings();
-        el.modalBody.querySelectorAll('[data-preset]').forEach(b => b.classList.toggle('active', b.dataset.preset === eqPreset));
+        updatePresetUI();
         showToast(`🎚️ ${eqPreset} preset`);
       });
     });
+
     const bbBtn = document.getElementById('bassBoostBtn');
     if (bbBtn) bbBtn.addEventListener('click', () => {
       bassBoostEnabled = !bassBoostEnabled;
       localStorage.setItem('bassBoost', JSON.stringify(bassBoostEnabled));
       applyAudioSettings();
+      updatePresetUI();
       showToast(bassBoostEnabled ? '🔥 Bass Boost ON' : 'Bass Boost OFF');
-      closeModal(); setTimeout(() => el.eqBtn.click(), 100);
     });
+
     const normBtn = document.getElementById('normalizeBtn');
     if (normBtn) normBtn.addEventListener('click', () => {
       normalizeEnabled = !normalizeEnabled;
       localStorage.setItem('normalize', JSON.stringify(normalizeEnabled));
       applyAudioSettings();
+      updatePresetUI();
       showToast(normalizeEnabled ? '🔊 Normalize ON' : 'Normalize OFF');
-      closeModal(); setTimeout(() => el.eqBtn.click(), 100);
     });
+
     const cfBtn = document.getElementById('crossfadeBtn');
     if (cfBtn) cfBtn.addEventListener('click', () => {
       crossfadeEnabled = !crossfadeEnabled;
       localStorage.setItem('crossfade', JSON.stringify(crossfadeEnabled));
+      updatePresetUI();
       showToast(crossfadeEnabled ? '🔀 Crossfade ON' : 'Crossfade OFF');
-      closeModal(); setTimeout(() => el.eqBtn.click(), 100);
     });
   }, 50);
-});
+}
+
+el.eqBtn.addEventListener('click', openEqModal);
 
 // ══════════════════════════════════════════════════════════
 // LYRICS
@@ -2656,6 +2637,11 @@ function closeModal() {
   if (!el.modalBackdrop.classList.contains('show')) return;
   el.modalBackdrop.classList.remove('show');
   document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+  document.body.style.height = '';
+  document.documentElement.style.overflow = '';
   window.scrollTo(0, savedScrollY);
 }
 el.modalClose.addEventListener('click', closeModal);
@@ -2684,7 +2670,6 @@ el.searchInput.addEventListener('input', () => {
         currentSource = 'jamendo';
         currentGenre = '';
       }
-      currentArtistFilter = null;
       renderGenres();
       saavnPage = 0;
       jamendoOffset = 0;
@@ -2716,6 +2701,21 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'ArrowLeft') prevTrack();
   if (e.code === 'Escape' && el.nowPlaying.classList.contains('show')) closeNowPlaying();
 });
+
+// ══════════════════════════════════════════════════════════
+// GLOBAL SCROLL WATCHDOG — always keep body scrollable
+// ══════════════════════════════════════════════════════════
+setInterval(() => {
+  const modalOpen = el.modalBackdrop.classList.contains('show');
+  if (!modalOpen) {
+    if (document.body.style.overflow === 'hidden') document.body.style.overflow = '';
+    if (document.body.style.position === 'fixed') document.body.style.position = '';
+    if (document.body.style.top) document.body.style.top = '';
+    if (document.body.style.height) document.body.style.height = '';
+    if (document.body.style.width) document.body.style.width = '';
+    if (document.documentElement.style.overflow === 'hidden') document.documentElement.style.overflow = '';
+  }
+}, 1000);
 
 // Init
 applyTheme();
