@@ -2176,7 +2176,6 @@ function openNowPlaying() {
     return;
   }
   el.nowPlaying.classList.add('show');
-  document.body.classList.add('no-pull');
   requestAnimationFrame(() => el.nowPlaying.classList.add('slide-in'));
   syncNowPlayingHeart();
   drawWaveform(el.npWaveCanvas);
@@ -2185,43 +2184,8 @@ function closeNowPlaying() {
   el.nowPlaying.classList.remove('slide-in');
   setTimeout(() => {
     el.nowPlaying.classList.remove('show');
-
-    // Full body unlock if no other overlay is open
-    if (!el.modalBackdrop.classList.contains('show')) {
-      document.body.classList.remove('no-pull');
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.overscrollBehavior = '';
-      // Force a reflow to ensure styles apply
-      void document.body.offsetHeight;
-      // Restore scroll
-      const y = savedScrollY || 0;
-      window.scrollTo(0, y);
-    }
   }, 350);
 }
-// Safety net — always check body state
-setInterval(() => {
-  // If no overlay is open but body is still locked, unlock it
-  if (!el.nowPlaying.classList.contains('show') && !el.modalBackdrop.classList.contains('show')) {
-    if (document.body.style.position === 'fixed' || document.body.classList.contains('no-pull')) {
-      document.body.classList.remove('no-pull');
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.overscrollBehavior = '';
-    }
-  }
-}, 800);
 
 el.npClose.addEventListener('click', closeNowPlaying);
 el.npPlayBtn.addEventListener('click', togglePlay);
@@ -2686,26 +2650,12 @@ function openModal(title, html) {
   el.modalBody.innerHTML = html;
   el.modalBackdrop.classList.add('show');
   savedScrollY = window.scrollY || window.pageYOffset || 0;
-  document.body.classList.add('no-pull');
   document.body.style.overflow = 'hidden';
-  document.body.style.position = 'fixed';
-  document.body.style.top = `-${savedScrollY}px`;
-  document.body.style.left = '0';
-  document.body.style.right = '0';
-  document.body.style.width = '100%';
 }
 function closeModal() {
   if (!el.modalBackdrop.classList.contains('show')) return;
   el.modalBackdrop.classList.remove('show');
-  if (!el.nowPlaying.classList.contains('show')) {
-    document.body.classList.remove('no-pull');
-  }
   document.body.style.overflow = '';
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.left = '';
-  document.body.style.right = '';
-  document.body.style.width = '';
   window.scrollTo(0, savedScrollY);
 }
 el.modalClose.addEventListener('click', closeModal);
