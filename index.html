@@ -13,7 +13,7 @@
   html, body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg); color: var(--text);
-    min-height: 100vh; overflow-x: hidden; padding-bottom: 140px;
+    min-height: 100vh; overflow-x: hidden; padding-bottom: 180px;
   }
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
@@ -36,7 +36,6 @@
   .search input::placeholder { color: var(--light); }
   .search::before { content: '🔍'; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none; }
 
-  /* TABS */
   .tabs {
     display: flex; gap: 6px; padding: 12px 16px 0;
     overflow-x: auto; scrollbar-width: none;
@@ -77,14 +76,21 @@
   .track-row.playing .track-row-title { color: var(--green); }
   .track-row-artist { font-size: 12px; color: var(--light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .track-row-actions { display: flex; gap: 4px; }
+
   .track-action-btn {
     background: none; border: none; color: var(--light);
     font-size: 18px; cursor: pointer; padding: 6px;
     border-radius: 50%; transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; min-width: 44px;
   }
   .track-action-btn:hover { background: var(--bg3); color: var(--text); }
   .track-action-btn.active { color: var(--green); }
+  .track-action-btn .btn-label {
+    font-size: 9px; font-weight: 600; color: var(--light);
+    text-transform: uppercase; letter-spacing: 0.3px;
+    display: none;
+  }
 
   .load-more {
     text-align: center; margin-top: 16px; padding: 12px;
@@ -101,7 +107,7 @@
     position: fixed; bottom: 0; left: 0; right: 0;
     background: linear-gradient(180deg, #181818, #0d0d0d);
     border-top: 1px solid rgba(255,255,255,0.08);
-    padding: 12px 16px; z-index: 200; display: none;
+    padding: 10px 12px 12px; z-index: 200; display: none;
   }
   .player.show { display: block; }
   .progress-wrap { width: 100%; height: 4px; background: #4d4d4d; border-radius: 4px; margin-bottom: 10px; position: relative; cursor: pointer; }
@@ -109,19 +115,38 @@
   .progress-bar { height: 100%; background: var(--green); border-radius: 4px; width: 0%; transition: width 0.1s linear; position: relative; }
   .progress-bar::after { content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; background: white; border-radius: 50%; opacity: 0; transition: opacity 0.15s; }
   .progress-wrap:hover .progress-bar::after { opacity: 1; }
-  .player-main { display: flex; align-items: center; gap: 12px; }
+
+  .player-main { display: flex; align-items: center; gap: 10px; }
   .player-art { width: 48px; height: 48px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: var(--bg3); }
   .player-info { flex: 1; min-width: 0; }
   .player-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player-artist { font-size: 11px; color: var(--light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-  .player-controls { display: flex; align-items: center; gap: 6px; }
-  .pc-btn { background: none; border: none; color: var(--text); font-size: 18px; cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; font-family: inherit; position: relative; }
+
+  /* PLAYER CONTROL SECTIONS */
+  .player-controls {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .player-controls-main {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .pc-btn {
+    background: none; border: none; color: var(--text); font-size: 18px;
+    cursor: pointer; padding: 8px 6px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; transition: transform 0.1s;
+    font-family: inherit; position: relative; gap: 3px; min-width: 44px;
+  }
   .pc-btn:active { transform: scale(0.9); }
-  .pc-btn.play { background: white; color: #000; width: 38px; height: 38px; border-radius: 50%; font-size: 14px; padding-left: 3px; }
+  .pc-btn.play { background: white; color: #000; width: 42px; height: 42px; border-radius: 50%; font-size: 15px; padding-left: 3px; min-width: 42px; }
   .pc-btn.on { color: var(--green); }
-  .pc-btn.small { font-size: 15px; }
+  .pc-btn.small { font-size: 16px; }
+  .pc-btn .btn-label {
+    font-size: 9px; font-weight: 600; color: var(--light);
+    text-transform: uppercase; letter-spacing: 0.3px;
+    line-height: 1;
+  }
+  .pc-btn.on .btn-label { color: var(--green); }
   .player-time { display: none; font-size: 11px; color: var(--light); font-variant-numeric: tabular-nums; min-width: 80px; text-align: right; }
-  @media (min-width: 500px) { .player-time { display: block; } }
+  @media (min-width: 700px) { .player-time { display: block; } }
 
   /* EQ CANVAS */
   #eqCanvas {
@@ -175,10 +200,9 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .empty { text-align: center; padding: 60px 20px; color: var(--light); }
   .empty::before { content: '🎧'; font-size: 60px; display: block; margin-bottom: 16px; opacity: 0.5; }
-  .toast { position: fixed; bottom: 150px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--green); color: #000; padding: 10px 20px; border-radius: 24px; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 500; white-space: nowrap; }
+  .toast { position: fixed; bottom: 200px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--green); color: #000; padding: 10px 20px; border-radius: 24px; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 500; white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  /* SLEEP TIMER BADGE */
   .sleep-badge {
     position: fixed; top: 64px; right: 12px;
     background: var(--green); color: #000;
@@ -189,11 +213,40 @@
   }
   .sleep-badge.show { display: block; }
 
-  @media (max-width: 500px) {
+  /* MOBILE-SPECIFIC LAYOUT */
+  @media (max-width: 700px) {
     .logo { font-size: 14px; } .logo::before { font-size: 18px; }
     .section-title { font-size: 18px; }
-    .player-controls { gap: 2px; }
-    .pc-btn { padding: 4px; font-size: 16px; }
+    .player { padding: 8px 10px 10px; }
+    .player-main { gap: 8px; flex-wrap: wrap; }
+    .player-info { min-width: 100px; }
+
+    /* Hide artist line on very small screens to save space */
+    .player-artist { display: block; }
+
+    /* Show labels on mobile */
+    .track-action-btn .btn-label { display: block; }
+    .pc-btn .btn-label { display: block; }
+
+    /* Restructure controls: 2 rows on mobile */
+    .player-controls {
+      display: flex; flex-wrap: wrap;
+      justify-content: center; width: 100%;
+      gap: 6px; margin-top: 8px;
+      order: 3;
+    }
+    .player-controls-main { width: 100%; justify-content: center; gap: 8px; }
+    .player-controls .pc-btn.small { order: -1; }
+
+    /* Bigger tap targets on mobile */
+    .pc-btn { padding: 8px 10px; min-width: 48px; }
+    .pc-btn.play { width: 48px; height: 48px; }
+  }
+
+  /* Show labels only on hover for desktop */
+  @media (min-width: 701px) {
+    .track-action-btn .btn-label { display: none; }
+    .pc-btn .btn-label { display: none; }
   }
 </style>
 </head>
@@ -251,16 +304,46 @@
       <div class="player-title" id="playerTitle">—</div>
       <div class="player-artist" id="playerArtist">—</div>
     </div>
+
     <div class="player-controls">
-      <button class="pc-btn small" id="eqBtn" title="Equalizer">📊</button>
-      <button class="pc-btn small" id="lyricsBtn" title="Lyrics">📝</button>
-      <button class="pc-btn small" id="sleepBtn" title="Sleep Timer">😴</button>
-      <button class="pc-btn" id="shuffleBtn" title="Shuffle">🔀</button>
-      <button class="pc-btn" id="prevBtn" title="Previous">⏮</button>
-      <button class="pc-btn play" id="playBtn" title="Play/Pause">▶</button>
-      <button class="pc-btn" id="nextBtn" title="Next">⏭</button>
-      <button class="pc-btn" id="repeatBtn" title="Repeat">🔁</button>
+      <!-- Extra feature buttons (first row on mobile) -->
+      <button class="pc-btn small" id="eqBtn">
+        <span>📊</span>
+        <span class="btn-label">EQ</span>
+      </button>
+      <button class="pc-btn small" id="lyricsBtn">
+        <span>📝</span>
+        <span class="btn-label">Lyrics</span>
+      </button>
+      <button class="pc-btn small" id="sleepBtn">
+        <span>😴</span>
+        <span class="btn-label">Sleep</span>
+      </button>
+
+      <!-- Main playback controls -->
+      <div class="player-controls-main">
+        <button class="pc-btn" id="shuffleBtn">
+          <span>🔀</span>
+          <span class="btn-label">Shuffle</span>
+        </button>
+        <button class="pc-btn" id="prevBtn">
+          <span>⏮</span>
+          <span class="btn-label">Prev</span>
+        </button>
+        <button class="pc-btn play" id="playBtn">
+          <span id="playIcon">▶</span>
+        </button>
+        <button class="pc-btn" id="nextBtn">
+          <span>⏭</span>
+          <span class="btn-label">Next</span>
+        </button>
+        <button class="pc-btn" id="repeatBtn">
+          <span>🔁</span>
+          <span class="btn-label">Repeat</span>
+        </button>
+      </div>
     </div>
+
     <div class="player-time" id="playerTime">0:00 / 0:00</div>
   </div>
 </div>
@@ -303,7 +386,6 @@ let jamendoOffset = 0;
 let lastQueryIndex = -1;
 let currentView = 'browse';
 
-// Feature state
 let favorites = JSON.parse(localStorage.getItem('favs') || '[]');
 let playlists = JSON.parse(localStorage.getItem('playlists') || '[]');
 let downloadedTracks = JSON.parse(localStorage.getItem('downloads') || '{}');
@@ -315,7 +397,6 @@ const audio = new Audio();
 audio.preload = 'auto';
 audio.crossOrigin = 'anonymous';
 
-// Web Audio for equalizer
 let audioCtx = null;
 let analyser = null;
 let sourceNode = null;
@@ -351,6 +432,7 @@ const el = {
   progressWrap: document.getElementById('progressWrap'),
   progressBar: document.getElementById('progressBar'),
   playBtn: document.getElementById('playBtn'),
+  playIcon: document.getElementById('playIcon'),
   prevBtn: document.getElementById('prevBtn'),
   nextBtn: document.getElementById('nextBtn'),
   shuffleBtn: document.getElementById('shuffleBtn'),
@@ -405,7 +487,6 @@ function saveFavorites() { localStorage.setItem('favs', JSON.stringify(favorites
 function savePlaylists() { localStorage.setItem('playlists', JSON.stringify(playlists)); }
 function saveDownloads() { localStorage.setItem('downloads', JSON.stringify(downloadedTracks)); }
 
-// Track ID helper
 function tid(t) { return (t.id || '') + '|' + (t.title || '') + '|' + (t.artist || ''); }
 function isFavorite(t) { return favorites.some(f => tid(f) === tid(t)); }
 
@@ -592,7 +673,7 @@ async function loadJamendo(reset) {
 }
 
 // ══════════════════════════════════════════════════════════
-// RENDER TRACKS (main list) — FIXED FAVORITE ICON
+// RENDER TRACKS — with labels
 // ══════════════════════════════════════════════════════════
 function renderTracks() {
   if (!tracks.length) {
@@ -613,9 +694,18 @@ function renderTracks() {
           <div class="track-row-artist">${esc(t.artist)}</div>
         </div>
         <div class="track-row-actions">
-          <button class="track-action-btn ${fav}" data-action="fav" data-idx="${i}" title="Favorite">${favIcon}</button>
-          <button class="track-action-btn" data-action="download" data-idx="${i}" title="Download">${dl}</button>
-          <button class="track-action-btn" data-action="addpl" data-idx="${i}" title="Add to playlist">➕</button>
+          <button class="track-action-btn ${fav}" data-action="fav" data-idx="${i}">
+            <span>${favIcon}</span>
+            <span class="btn-label">Fav</span>
+          </button>
+          <button class="track-action-btn" data-action="download" data-idx="${i}">
+            <span>${dl}</span>
+            <span class="btn-label">Save</span>
+          </button>
+          <button class="track-action-btn" data-action="addpl" data-idx="${i}">
+            <span>➕</span>
+            <span class="btn-label">List</span>
+          </button>
         </div>
       </div>
     `;
@@ -624,7 +714,6 @@ function renderTracks() {
   html += `<button class="load-more" id="loadMoreBtn">⬇ Load more songs</button>`;
   el.tracksArea.innerHTML = html;
 
-  // Row click → play
   el.tracksArea.querySelectorAll('.track-row').forEach(row => {
     row.addEventListener('click', (e) => {
       if (e.target.closest('.track-action-btn')) return;
@@ -632,7 +721,6 @@ function renderTracks() {
     });
   });
 
-  // Action buttons
   el.tracksArea.querySelectorAll('.track-action-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -656,7 +744,7 @@ function renderTracks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// FAVORITES — FIXED ICON SWAP
+// FAVORITES
 // ══════════════════════════════════════════════════════════
 function toggleFavorite(track, btn) {
   const id = tid(track);
@@ -665,14 +753,16 @@ function toggleFavorite(track, btn) {
     favorites.splice(idx, 1);
     if (btn) {
       btn.classList.remove('active');
-      btn.textContent = '🤍';
+      const span = btn.querySelector('span');
+      if (span) span.textContent = '🤍';
     }
     showToast('💔 Removed from favorites');
   } else {
     favorites.push(track);
     if (btn) {
       btn.classList.add('active');
-      btn.textContent = '❤️';
+      const span = btn.querySelector('span');
+      if (span) span.textContent = '❤️';
     }
     showToast('❤️ Added to favorites');
   }
@@ -693,8 +783,12 @@ function renderFavorites() {
         <div class="track-row-artist">${esc(t.artist)}</div>
       </div>
       <div class="track-row-actions">
-        <button class="track-action-btn" data-action="play-fav" data-idx="${i}">▶</button>
-        <button class="track-action-btn active" data-action="unfav" data-idx="${i}">❤️</button>
+        <button class="track-action-btn" data-action="play-fav" data-idx="${i}">
+          <span>▶</span><span class="btn-label">Play</span>
+        </button>
+        <button class="track-action-btn active" data-action="unfav" data-idx="${i}">
+          <span>❤️</span><span class="btn-label">Remove</span>
+        </button>
       </div>
     </div>
   `).join('');
@@ -734,8 +828,12 @@ function renderPlaylists() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div class="section-title" style="margin:0;font-size:16px;">📁 ${esc(pl.name)}</div>
           <div style="display:flex;gap:4px;">
-            <button class="track-action-btn" data-action="play-pl" data-idx="${i}">▶</button>
-            <button class="track-action-btn" data-action="del-pl" data-idx="${i}">🗑</button>
+            <button class="track-action-btn" data-action="play-pl" data-idx="${i}">
+              <span>▶</span><span class="btn-label">Play</span>
+            </button>
+            <button class="track-action-btn" data-action="del-pl" data-idx="${i}">
+              <span>🗑</span><span class="btn-label">Delete</span>
+            </button>
           </div>
         </div>
         <div class="section-sub" style="margin:0;">${pl.tracks.length} song${pl.tracks.length !== 1 ? 's' : ''}</div>
@@ -816,7 +914,6 @@ function openAddToPlaylist(track) {
 async function downloadTrack(track) {
   const id = tid(track);
   if (downloadedTracks[id]) {
-    // Offer to play offline
     playTrackData(downloadedTracks[id]);
     showToast('📥 Playing offline');
     return;
@@ -883,7 +980,7 @@ function prevTrack() {
   playTrack((currentIndex - 1 + tracks.length) % tracks.length);
 }
 function updatePlayButton() {
-  el.playBtn.textContent = audio.paused ? '▶' : '⏸';
+  el.playIcon.textContent = audio.paused ? '▶' : '⏸';
 }
 
 audio.addEventListener('play', updatePlayButton);
@@ -926,7 +1023,7 @@ el.progressWrap.addEventListener('click', (e) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// EQUALIZER (Web Audio visualizer)
+// EQUALIZER
 // ══════════════════════════════════════════════════════════
 function setupEq() {
   if (audioCtx) return;
@@ -1120,7 +1217,6 @@ el.searchInput.addEventListener('input', () => {
   }, 500);
 });
 
-// Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
