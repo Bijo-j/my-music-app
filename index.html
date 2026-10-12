@@ -154,15 +154,12 @@
 
 <script>
   // ══════════════════════════════════════════════════════════
-  // CONFIG — iTunes Search API (100% CORS-friendly, no key needed)
+  // CONFIG — your own deployed JioSaavn API
   // ══════════════════════════════════════════════════════════
+  const SAAVN_API = 'https://saavn-api-37ao.vercel.app/api';
   const JAMENDO_CLIENT_ID = '6509f2f9';
   const JAMENDO_API = 'https://api.jamendo.com/v3.0';
-  const ITUNES_API = 'https://itunes.apple.com';
 
-  // ══════════════════════════════════════════════════════════
-  // STATE
-  // ══════════════════════════════════════════════════════════
   let tracks = [];
   let currentIndex = -1;
   let currentGenre = '';
@@ -171,7 +168,7 @@
   let repeatOn = false;
   let currentSearch = '';
   let isLoading = false;
-  let itunesPage = 0;
+  let saavnPage = 0;
   let jamendoOffset = 0;
   let lastQueryIndex = -1;
 
@@ -186,11 +183,11 @@
     { label: 'Electronic', value: 'electronic', source: 'jamendo' },
     { label: 'Hip-Hop', value: 'hiphop', source: 'jamendo' },
     { label: 'Classical', value: 'classical', source: 'jamendo' },
-    { label: '🇮🇳 All Indian', value: 'indian-all', source: 'itunes' },
-    { label: '🌴 Malayalam', value: 'malayalam', source: 'itunes' },
-    { label: '🎬 Tamil', value: 'tamil', source: 'itunes' },
-    { label: '🎵 Hindi', value: 'hindi', source: 'itunes' },
-    { label: '🎭 Telugu', value: 'telugu', source: 'itunes' },
+    { label: '🇮🇳 All Indian', value: 'indian-all', source: 'jiosaavn' },
+    { label: '🌴 Malayalam', value: 'malayalam', source: 'jiosaavn' },
+    { label: '🎬 Tamil', value: 'tamil', source: 'jiosaavn' },
+    { label: '🎵 Hindi', value: 'hindi', source: 'jiosaavn' },
+    { label: '🎭 Telugu', value: 'telugu', source: 'jiosaavn' },
   ];
 
   const el = {
@@ -245,7 +242,7 @@
         currentSource = btn.dataset.source;
         currentSearch = '';
         el.searchInput.value = '';
-        itunesPage = 0;
+        saavnPage = 0;
         jamendoOffset = 0;
         lastQueryIndex = -1;
         tracks = [];
@@ -260,7 +257,7 @@
     isLoading = true;
 
     if (reset) {
-      itunesPage = 0;
+      saavnPage = 0;
       jamendoOffset = 0;
       lastQueryIndex = -1;
       tracks = [];
@@ -270,8 +267,8 @@
     }
 
     try {
-      if (currentSource === 'itunes') {
-        await loadItunes(reset);
+      if (currentSource === 'jiosaavn') {
+        await loadSaavn(reset);
       } else {
         await loadJamendo(reset);
       }
@@ -286,34 +283,15 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  // ITUNES LOADER — reliable, CORS-friendly, huge Indian catalog
-  // Uses 30-second preview MP3s (legal, free, ad-free)
+  // JIOSAAVN — FULL SONGS from your deployed API
   // ══════════════════════════════════════════════════════════
-  async function loadItunes(reset) {
-    const LIMIT = 50; // iTunes allows up to 200
-
-    // Query sets per language for variety + no repetition
-    const queriesMap = {
-      'indian-all': [
-        'bollywood hits', 'arijit singh', 'shreya ghoshal', 'ar rahman',
-        'lata mangeshkar', 'kishore kumar', 'sonu nigam', 'indian classical'
-      ],
-      'malayalam': [
-        'malayalam hits', 'kj yesudas', 'mg sreekumar', 'malayalam melody',
-        'ks chithra malayalam', 'vidyasagar malayalam', 'malayalam film songs'
-      ],
-      'tamil': [
-        'tamil hits', 'ar rahman tamil', 'ilaiyaraaja', 'anirudh ravichander',
-        'sp balasubrahmanyam', 'tamil melody', 'tamil film songs'
-      ],
-      'hindi': [
-        'hindi hits', 'bollywood', 'arijit singh', 'lata mangeshkar',
-        'kishore kumar hindi', 'shreya ghoshal hindi', 'bollywood classics'
-      ],
-      'telugu': [
-        'telugu hits', 'ss thaman', 'devi sri prasad', 'sid sriram',
-        'telugu melody', 'telugu film songs', 'keeravani'
-      ],
+  async function loadSaavn(reset) {
+    const langMap = {
+      'indian-all': { label: '🇮🇳 All Indian Music', queries: ['arijit singh', 'shreya ghoshal', 'ar rahman', 'kishore kumar', 'lata mangeshkar', 'sonu nigam'] },
+      'malayalam': { label: '🌴 Malayalam Songs', queries: ['malayalam hits', 'kj yesudas', 'mg sreekumar', 'ks chithra', 'vidyasagar', 'malayalam melody'] },
+      'tamil': { label: '🎬 Tamil Songs', queries: ['tamil hits', 'ar rahman tamil', 'ilaiyaraaja', 'anirudh', 'sp balasubrahmanyam', 'tamil melody'] },
+      'hindi': { label: '🎵 Hindi Songs', queries: ['hindi hits', 'bollywood', 'arijit singh', 'lata mangeshkar', 'kishore kumar', 'shreya ghoshal'] },
+      'telugu': { label: '🎭 Telugu Songs', queries: ['telugu hits', 'ss thaman', 'devi sri prasad', 'sid sriram', 'keeravani', 'telugu melody'] },
     };
 
     let queries;
@@ -322,45 +300,54 @@
       el.tracksSub.textContent = 'Search results';
       queries = [currentSearch];
     } else {
-      const info = queriesMap[currentGenre] || queriesMap['indian-all'];
-      const labelMap = {
-        'indian-all': '🇮🇳 All Indian Music',
-        'malayalam': '🌴 Malayalam Songs',
-        'tamil': '🎬 Tamil Songs',
-        'hindi': '🎵 Hindi Songs',
-        'telugu': '🎭 Telugu Songs',
-      };
-      el.tracksTitle.textContent = labelMap[currentGenre] || '🇮🇳 Indian Music';
-      el.tracksSub.textContent = 'Popular tracks';
-      queries = info;
+      const info = langMap[currentGenre] || langMap['indian-all'];
+      el.tracksTitle.textContent = info.label;
+      el.tracksSub.textContent = 'Full songs';
+      queries = info.queries;
     }
 
-    // Cycle through queries on each load so we get different artists each time
     lastQueryIndex = (lastQueryIndex + 1) % queries.length;
     const query = queries[lastQueryIndex];
 
-    // iTunes search: entity=song gives tracks with previewUrl
-    const url = `${ITUNES_API}/search?term=${encodeURIComponent(query)}&entity=song&limit=${LIMIT}&offset=${itunesPage * LIMIT}`;
-
+    const url = `${SAAVN_API}/search/songs?query=${encodeURIComponent(query)}&page=${saavnPage}&limit=30`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error('iTunes API returned ' + res.status);
+    if (!res.ok) throw new Error('API returned ' + res.status);
     const json = await res.json();
 
-    const results = json.results || [];
-    itunesPage++;
+    const results = json?.data?.results || [];
+    saavnPage++;
 
     const existingIds = new Set(tracks.map(t => t.id));
     const seenKeys = new Set(tracks.map(t => (t.title + '|' + t.artist).toLowerCase()));
 
     const newTracks = [];
     results.forEach(song => {
-      if (!song.previewUrl) return;                    // only playable tracks
-      const id = 'it_' + song.trackId;
+      const id = song.id;
       if (!id || existingIds.has(id)) return;
 
-      const title = song.trackName || '';
-      const artist = song.artistName || 'Unknown';
-      const art = (song.artworkUrl100 || '').replace('100x100bb', '300x300bb');
+      const title = song.name || song.title || '';
+      let artist = 'Unknown';
+      if (song.primaryArtists) artist = song.primaryArtists;
+      else if (song.artists?.primary) artist = song.artists.primary.map(a => a.name).join(', ');
+      else if (song.singers) artist = song.singers;
+
+      let audioUrl = '';
+      if (Array.isArray(song.downloadUrl)) {
+        const best = song.downloadUrl[song.downloadUrl.length - 1];
+        audioUrl = best?.link || best?.url || '';
+      } else if (typeof song.downloadUrl === 'string') {
+        audioUrl = song.downloadUrl;
+      } else if (song.media_url) {
+        audioUrl = song.media_url;
+      }
+      if (!audioUrl) return;
+
+      let art = '';
+      if (Array.isArray(song.image)) {
+        art = song.image[song.image.length - 1]?.link || song.image[0]?.link || '';
+      } else if (typeof song.image === 'string') {
+        art = song.image;
+      }
 
       const key = (title + '|' + artist).toLowerCase();
       if (seenKeys.has(key)) return;
@@ -369,12 +356,9 @@
       seenKeys.add(key);
 
       newTracks.push({
-        id,
-        title,
-        artist,
-        art,
-        audio: song.previewUrl,
-        duration: Math.round((song.trackTimeMillis || 30000) / 1000),
+        id, title, artist, art,
+        audio: audioUrl,
+        duration: parseInt(song.duration) || 0,
       });
     });
 
@@ -388,7 +372,7 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  // JAMENDO LOADER
+  // JAMENDO LOADER (international genres)
   // ══════════════════════════════════════════════════════════
   async function loadJamendo(reset) {
     const LIMIT = 30;
@@ -559,14 +543,14 @@
         currentSearch = q;
         if (q) {
           currentGenre = '';
-          currentSource = 'itunes';    // search uses iTunes (huge catalog, CORS-friendly)
+          currentSource = 'jiosaavn';
           renderGenres();
         } else {
           currentSource = 'jamendo';
           currentGenre = '';
           renderGenres();
         }
-        itunesPage = 0;
+        saavnPage = 0;
         jamendoOffset = 0;
         lastQueryIndex = -1;
         tracks = [];
