@@ -2216,7 +2216,10 @@ audio.addEventListener('ended', () => {
   if (repeatOn) { audio.currentTime = 0; audio.play(); }
   else nextTrack();
 });
-audio.addEventListener('error', () => showToast('⚠️ Playback error'));
+audio.addEventListener('error', () => {
+  if (playerClosing) return;  // Ignore errors during close
+  showToast('⚠️ Playback error');
+});
 audio.addEventListener('timeupdate', () => {
   if (audio.duration && !isScrubbing) {
     const pct = (audio.currentTime / audio.duration) * 100;
@@ -2259,12 +2262,17 @@ el.playerInfo.addEventListener('click', openNowPlaying);
 // CLOSE PLAYER BAR (mobile)
 // ══════════════════════════════════════════════════════════
 const playerCloseBtn = document.getElementById('playerClose');
+let playerClosing = false;
 if (playerCloseBtn) {
   playerCloseBtn.addEventListener('click', () => {
+    // Set flag so error handler ignores this
+    playerClosing = true;
+
     // Stop audio
     audio.pause();
     audio.currentTime = 0;
-    audio.src = '';
+    audio.removeAttribute('src');
+    audio.load();
 
     // Hide player bar
     el.player.classList.remove('show');
@@ -2286,6 +2294,9 @@ if (playerCloseBtn) {
     el.playerTime.textContent = '0:00 / 0:00';
 
     showToast('⏹ Player closed');
+
+    // Clear flag after a moment
+    setTimeout(() => { playerClosing = false; }, 500);
   });
 }
 
