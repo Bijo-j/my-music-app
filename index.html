@@ -1602,7 +1602,10 @@ function renderTrackRow(t, i, isPlaying) {
   const isFav = isFavorite(t);
   const favClass = isFav ? 'active' : '';
   const dl = downloadedTracks[tid(t)] ? '📥' : '⬇';
-    const bars = isPlaying
+      // Show bars only when a song is loaded in the player (audio.src exists)
+  const hasActiveAudio = !!audio.src && !audio.src.startsWith('data:') === false ? !!audio.src : !!audio.src;
+  const showBars = isPlaying && !!audio.src;
+  const bars = showBars
     ? `<div class="playing-bars ${audio.paused ? 'paused' : ''}"><span></span><span></span><span></span><span></span></div>`
     : '';
   const playingClass = isPlaying ? `playing${audio.paused ? ' paused' : ''}` : '';
@@ -2294,15 +2297,16 @@ if (playerCloseBtn) {
     el.npArtist.textContent = '—';
     el.npArt.src = '';
 
-    // Reset current track
-    currentIndex = -1;
+        // Keep currentIndex so we know which song was stopped
+    // Just remove the animated bars, keep the green highlight
 
-    // Remove the green highlight + freeze equalizer bars from all track rows
-    document.querySelectorAll('.track-row').forEach(row => {
-      row.classList.remove('playing', 'paused');
-      const bars = row.querySelector('.playing-bars');
-      if (bars) bars.remove();
-    });
+      // Remove only the animated bars (not the row's green highlight)
+    document.querySelectorAll('.playing-bars').forEach(b => b.remove());
+
+    // Re-render the current list so the row keeps the green highlight without the bars
+    if (currentView === 'browse') renderTracks();
+    else if (currentView === 'favorites') renderFavorites();
+    else if (currentView === 'recent') renderRecent();
 
     // Reset progress
     el.progressBar.style.width = '0%';
