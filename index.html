@@ -144,7 +144,10 @@
     0%, 100% { transform: scaleY(0.4); }
     50% { transform: scaleY(1); }
   }
-  .track-row.paused .playing-bars span { animation-play-state: paused; }
+    .playing-bars.paused span,
+  .track-row.paused .playing-bars span {
+    animation-play-state: paused !important;
+  }
 
   .track-action-btn {
     background: none; border: none; color: var(--light);
@@ -1599,11 +1602,12 @@ function renderTrackRow(t, i, isPlaying) {
   const isFav = isFavorite(t);
   const favClass = isFav ? 'active' : '';
   const dl = downloadedTracks[tid(t)] ? '📥' : '⬇';
-  const bars = isPlaying
+    const bars = isPlaying
     ? `<div class="playing-bars ${audio.paused ? 'paused' : ''}"><span></span><span></span><span></span><span></span></div>`
     : '';
+  const playingClass = isPlaying ? `playing${audio.paused ? ' paused' : ''}` : '';
   return `
-    <div class="track-row ${isPlaying ? 'playing' : ''}" data-idx="${i}">
+    <div class="track-row ${playingClass}" data-idx="${i}">
       <div class="track-row-art-wrap">
         <img class="track-row-art" src="${esc(t.art) || placeholderArt()}" onerror="this.src='${placeholderArt()}'" alt="">
         ${bars}
@@ -2195,12 +2199,17 @@ function prevTrack() {
   playTrack((currentIndex - 1 + tracks.length) % tracks.length);
 }
 function updatePlayButton() {
-  el.playIcon.innerHTML = audio.paused ? PLAY_SVG : PAUSE_SVG;
-  el.playBtn.classList.toggle('playing', !audio.paused);
-  el.npPlayIcon.innerHTML = audio.paused ? PLAY_SVG : PAUSE_SVG;
-  el.npPlayBtn.classList.toggle('playing', !audio.paused);
-  el.nowPlaying.classList.toggle('playing', !audio.paused);
-  document.querySelectorAll('.playing-bars').forEach(b => b.classList.toggle('paused', audio.paused));
+  const isPaused = audio.paused;
+  el.playIcon.innerHTML = isPaused ? PLAY_SVG : PAUSE_SVG;
+  el.playBtn.classList.toggle('playing', !isPaused);
+  el.npPlayIcon.innerHTML = isPaused ? PLAY_SVG : PAUSE_SVG;
+  el.npPlayBtn.classList.toggle('playing', !isPaused);
+  el.nowPlaying.classList.toggle('playing', !isPaused);
+
+  // Freeze/resume the small equalizer bars in track rows
+  document.querySelectorAll('.playing-bars').forEach(b => {
+    b.classList.toggle('paused', isPaused);
+  });
 }
 
 audio.addEventListener('play', updatePlayButton);
@@ -2274,7 +2283,7 @@ if (playerCloseBtn) {
     audio.removeAttribute('src');
     audio.load();
 
-    // Hide player bar
+        // Hide player bar
     el.player.classList.remove('show');
 
     // Clear now playing UI
@@ -2287,6 +2296,13 @@ if (playerCloseBtn) {
 
     // Reset current track
     currentIndex = -1;
+
+    // Remove the green highlight + freeze equalizer bars from all track rows
+    document.querySelectorAll('.track-row').forEach(row => {
+      row.classList.remove('playing', 'paused');
+      const bars = row.querySelector('.playing-bars');
+      if (bars) bars.remove();
+    });
 
     // Reset progress
     el.progressBar.style.width = '0%';
