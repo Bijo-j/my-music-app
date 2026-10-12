@@ -9,6 +9,7 @@
   :root {
     --bg: #121212; --bg2: #181818; --bg3: #282828;
     --green: #1DB954; --text: #ffffff; --light: #a7a7a7;
+    --red: #e0245e;
   }
   html, body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -82,15 +83,45 @@
     font-size: 18px; cursor: pointer; padding: 6px;
     border-radius: 50%; transition: all 0.2s;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 2px; min-width: 44px;
+    gap: 2px; min-width: 44px; position: relative;
   }
   .track-action-btn:hover { background: var(--bg3); color: var(--text); }
-  .track-action-btn.active { color: var(--green); }
   .track-action-btn .btn-label {
     font-size: 9px; font-weight: 600; color: var(--light);
     text-transform: uppercase; letter-spacing: 0.3px;
     display: none;
   }
+
+  /* ====== NEW HEART ICON (CSS-based) ====== */
+  .heart-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    position: relative;
+    font-size: 0; /* Hide any text fallback */
+  }
+  .heart-icon::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    /* Outline heart shape using CSS mask */
+    background-color: var(--light);
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'/></svg>");
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    transition: background-color 0.2s;
+  }
+  /* Filled heart when active */
+  .track-action-btn.active .heart-icon::before {
+    background-color: var(--red);
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'/></svg>");
+  }
+  .heart-icon:hover::before { background-color: var(--red); }
 
   .load-more {
     text-align: center; margin-top: 16px; padding: 12px;
@@ -122,7 +153,6 @@
   .player-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player-artist { font-size: 11px; color: var(--light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 
-  /* PLAYER CONTROL SECTIONS */
   .player-controls {
     display: flex; align-items: center; gap: 8px;
   }
@@ -147,6 +177,37 @@
   .pc-btn.on .btn-label { color: var(--green); }
   .player-time { display: none; font-size: 11px; color: var(--light); font-variant-numeric: tabular-nums; min-width: 80px; text-align: right; }
   @media (min-width: 700px) { .player-time { display: block; } }
+
+  /* ====== CUSTOM TOOLTIP FOR DESKTOP ====== */
+  .has-tip { position: relative; }
+  .has-tip::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: #000;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    z-index: 500;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .has-tip:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  /* Hide tooltips on touch devices / mobile */
+  @media (max-width: 700px) {
+    .has-tip::after { display: none; }
+  }
 
   /* EQ CANVAS */
   #eqCanvas {
@@ -183,7 +244,6 @@
   .modal-body .lyrics-line { padding: 2px 0; }
   .modal-body .lyrics-line.active { color: var(--green); font-weight: 700; }
 
-  /* SLEEP TIMER PICKER */
   .timer-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
   .timer-option {
     padding: 12px; background: var(--bg3); border: 1px solid transparent;
@@ -194,7 +254,6 @@
   .timer-option:hover { background: #3e3e3e; }
   .timer-option.active { background: var(--green); color: #000; border-color: var(--green); }
 
-  /* TOAST */
   .loading { text-align: center; padding: 60px 20px; color: var(--light); }
   .spinner { width: 40px; height: 40px; border: 3px solid var(--bg3); border-top-color: var(--green); border-radius: 50%; margin: 0 auto 16px; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -213,7 +272,6 @@
   }
   .sleep-badge.show { display: block; }
 
-  /* MOBILE-SPECIFIC LAYOUT */
   @media (max-width: 700px) {
     .logo { font-size: 14px; } .logo::before { font-size: 18px; }
     .section-title { font-size: 18px; }
@@ -221,14 +279,9 @@
     .player-main { gap: 8px; flex-wrap: wrap; }
     .player-info { min-width: 100px; }
 
-    /* Hide artist line on very small screens to save space */
-    .player-artist { display: block; }
-
-    /* Show labels on mobile */
     .track-action-btn .btn-label { display: block; }
     .pc-btn .btn-label { display: block; }
 
-    /* Restructure controls: 2 rows on mobile */
     .player-controls {
       display: flex; flex-wrap: wrap;
       justify-content: center; width: 100%;
@@ -236,17 +289,9 @@
       order: 3;
     }
     .player-controls-main { width: 100%; justify-content: center; gap: 8px; }
-    .player-controls .pc-btn.small { order: -1; }
 
-    /* Bigger tap targets on mobile */
     .pc-btn { padding: 8px 10px; min-width: 48px; }
     .pc-btn.play { width: 48px; height: 48px; }
-  }
-
-  /* Show labels only on hover for desktop */
-  @media (min-width: 701px) {
-    .track-action-btn .btn-label { display: none; }
-    .pc-btn .btn-label { display: none; }
   }
 </style>
 </head>
@@ -306,38 +351,36 @@
     </div>
 
     <div class="player-controls">
-      <!-- Extra feature buttons (first row on mobile) -->
-      <button class="pc-btn small" id="eqBtn">
+      <button class="pc-btn small has-tip" id="eqBtn" data-tip="Equalizer">
         <span>📊</span>
         <span class="btn-label">EQ</span>
       </button>
-      <button class="pc-btn small" id="lyricsBtn">
+      <button class="pc-btn small has-tip" id="lyricsBtn" data-tip="Lyrics">
         <span>📝</span>
         <span class="btn-label">Lyrics</span>
       </button>
-      <button class="pc-btn small" id="sleepBtn">
+      <button class="pc-btn small has-tip" id="sleepBtn" data-tip="Sleep Timer">
         <span>😴</span>
         <span class="btn-label">Sleep</span>
       </button>
 
-      <!-- Main playback controls -->
       <div class="player-controls-main">
-        <button class="pc-btn" id="shuffleBtn">
+        <button class="pc-btn has-tip" id="shuffleBtn" data-tip="Shuffle">
           <span>🔀</span>
           <span class="btn-label">Shuffle</span>
         </button>
-        <button class="pc-btn" id="prevBtn">
+        <button class="pc-btn has-tip" id="prevBtn" data-tip="Previous">
           <span>⏮</span>
           <span class="btn-label">Prev</span>
         </button>
-        <button class="pc-btn play" id="playBtn">
+        <button class="pc-btn play has-tip" id="playBtn" data-tip="Play / Pause">
           <span id="playIcon">▶</span>
         </button>
-        <button class="pc-btn" id="nextBtn">
+        <button class="pc-btn has-tip" id="nextBtn" data-tip="Next">
           <span>⏭</span>
           <span class="btn-label">Next</span>
         </button>
-        <button class="pc-btn" id="repeatBtn">
+        <button class="pc-btn has-tip" id="repeatBtn" data-tip="Repeat">
           <span>🔁</span>
           <span class="btn-label">Repeat</span>
         </button>
@@ -348,7 +391,6 @@
   </div>
 </div>
 
-<!-- MODAL -->
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
     <div class="modal-header">
@@ -673,7 +715,7 @@ async function loadJamendo(reset) {
 }
 
 // ══════════════════════════════════════════════════════════
-// RENDER TRACKS — with labels
+// RENDER TRACKS — with heart icon (CSS-based outline → fill red)
 // ══════════════════════════════════════════════════════════
 function renderTracks() {
   if (!tracks.length) {
@@ -683,8 +725,8 @@ function renderTracks() {
 
   el.tracksArea.className = 'track-list';
   let html = tracks.map((t, i) => {
-    const fav = isFavorite(t) ? 'active' : '';
-    const favIcon = isFavorite(t) ? '❤️' : '🤍';
+    const isFav = isFavorite(t);
+    const favClass = isFav ? 'active' : '';
     const dl = downloadedTracks[tid(t)] ? '📥' : '⬇';
     return `
       <div class="track-row ${i === currentIndex ? 'playing' : ''}" data-idx="${i}">
@@ -694,15 +736,15 @@ function renderTracks() {
           <div class="track-row-artist">${esc(t.artist)}</div>
         </div>
         <div class="track-row-actions">
-          <button class="track-action-btn ${fav}" data-action="fav" data-idx="${i}">
-            <span>${favIcon}</span>
+          <button class="track-action-btn has-tip ${favClass}" data-action="fav" data-idx="${i}" data-tip="${isFav ? 'Remove from favorites' : 'Add to favorites'}">
+            <span class="heart-icon"></span>
             <span class="btn-label">Fav</span>
           </button>
-          <button class="track-action-btn" data-action="download" data-idx="${i}">
+          <button class="track-action-btn has-tip" data-action="download" data-idx="${i}" data-tip="Download">
             <span>${dl}</span>
             <span class="btn-label">Save</span>
           </button>
-          <button class="track-action-btn" data-action="addpl" data-idx="${i}">
+          <button class="track-action-btn has-tip" data-action="addpl" data-idx="${i}" data-tip="Add to playlist">
             <span>➕</span>
             <span class="btn-label">List</span>
           </button>
@@ -744,7 +786,7 @@ function renderTracks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// FAVORITES
+// FAVORITES — toggle heart icon (no emoji swap needed)
 // ══════════════════════════════════════════════════════════
 function toggleFavorite(track, btn) {
   const id = tid(track);
@@ -753,16 +795,14 @@ function toggleFavorite(track, btn) {
     favorites.splice(idx, 1);
     if (btn) {
       btn.classList.remove('active');
-      const span = btn.querySelector('span');
-      if (span) span.textContent = '🤍';
+      btn.dataset.tip = 'Add to favorites';
     }
     showToast('💔 Removed from favorites');
   } else {
     favorites.push(track);
     if (btn) {
       btn.classList.add('active');
-      const span = btn.querySelector('span');
-      if (span) span.textContent = '❤️';
+      btn.dataset.tip = 'Remove from favorites';
     }
     showToast('❤️ Added to favorites');
   }
@@ -771,7 +811,7 @@ function toggleFavorite(track, btn) {
 
 function renderFavorites() {
   if (!favorites.length) {
-    el.favoritesArea.innerHTML = '<div class="empty">No favorites yet. Tap 🤍 on any song.</div>';
+    el.favoritesArea.innerHTML = '<div class="empty">No favorites yet. Tap the heart on any song.</div>';
     return;
   }
   el.favoritesArea.className = 'track-list';
@@ -783,11 +823,11 @@ function renderFavorites() {
         <div class="track-row-artist">${esc(t.artist)}</div>
       </div>
       <div class="track-row-actions">
-        <button class="track-action-btn" data-action="play-fav" data-idx="${i}">
+        <button class="track-action-btn has-tip" data-action="play-fav" data-idx="${i}" data-tip="Play">
           <span>▶</span><span class="btn-label">Play</span>
         </button>
-        <button class="track-action-btn active" data-action="unfav" data-idx="${i}">
-          <span>❤️</span><span class="btn-label">Remove</span>
+        <button class="track-action-btn active has-tip" data-action="unfav" data-idx="${i}" data-tip="Remove from favorites">
+          <span class="heart-icon"></span><span class="btn-label">Remove</span>
         </button>
       </div>
     </div>
@@ -828,10 +868,10 @@ function renderPlaylists() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div class="section-title" style="margin:0;font-size:16px;">📁 ${esc(pl.name)}</div>
           <div style="display:flex;gap:4px;">
-            <button class="track-action-btn" data-action="play-pl" data-idx="${i}">
+            <button class="track-action-btn has-tip" data-action="play-pl" data-idx="${i}" data-tip="Play">
               <span>▶</span><span class="btn-label">Play</span>
             </button>
-            <button class="track-action-btn" data-action="del-pl" data-idx="${i}">
+            <button class="track-action-btn has-tip" data-action="del-pl" data-idx="${i}" data-tip="Delete">
               <span>🗑</span><span class="btn-label">Delete</span>
             </button>
           </div>
