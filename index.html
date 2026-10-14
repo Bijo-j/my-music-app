@@ -995,13 +995,14 @@ const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l
 const PAUSE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
 
 const GENRES = [
-  { label: '🔥 Trending', value: '', source: 'jamendo' },
-  { label: 'Hip-Hop', value: 'hiphop', source: 'jamendo' },
-  { label: 'Classical', value: 'classical', source: 'jamendo' },
+
   { label: '🇮🇳 All Indian', value: 'indian-all', source: 'jiosaavn' },
   { label: '🌴 Malayalam', value: 'malayalam', source: 'jiosaavn' },
   { label: '🎬 Tamil', value: 'tamil', source: 'jiosaavn' },
   { label: '🎵 Hindi', value: 'hindi', source: 'jiosaavn' },
+  { label: '🔥 Trending', value: '', source: 'jamendo' },
+  { label: 'Hip-Hop', value: 'hiphop', source: 'jamendo' },
+  { label: 'Classical', value: 'classical', source: 'jamendo' },
 ];
 
 const el = {
@@ -1193,11 +1194,17 @@ async function loadTracks(reset = true) {
   isLoading = true;
 
   if (reset) {
-    saavnPage = 0;
-    jamendoOffset = 0;
     lastQueryIndex = -1;
     tracks = [];
     currentIndex = -1;
+    // ── Random start on fresh manual loads; search stays deterministic ──
+    if (!currentSearch) {
+      saavnPage = 1 + Math.floor(Math.random() * 3);       // random page 1–3
+      jamendoOffset = Math.floor(Math.random() * 200);     // random offset
+    } else {
+      saavnPage = 0;
+      jamendoOffset = 0;
+    }
     el.tracksArea.className = 'track-list';
     el.tracksArea.innerHTML = '<div class="loading"><div class="spinner"></div>Loading music…</div>';
   }
@@ -1235,7 +1242,12 @@ async function loadSaavn(reset) {
     queries = info.queries;
   }
 
-  lastQueryIndex = (lastQueryIndex + 1) % queries.length;
+  if (reset && !currentSearch) {
+    // Fresh load (not search): pick a random starting query for variety
+    lastQueryIndex = Math.floor(Math.random() * queries.length);
+  } else {
+    lastQueryIndex = (lastQueryIndex + 1) % queries.length;
+  }
   const query = queries[lastQueryIndex];
 
   const url = `${SAAVN_API}/search/songs?query=${encodeURIComponent(query)}&page=${saavnPage}&limit=30`;
@@ -1413,6 +1425,9 @@ function updateTrackArt(id, url) {
 
 async function loadJamendo(reset) {
   const LIMIT = 30;
+  if (reset && !currentSearch) {
+    jamendoOffset = Math.floor(Math.random() * 200); // random start on fresh load
+  }
   let url = `${JAMENDO_API}/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=${LIMIT}&offset=${jamendoOffset}&include=musicinfo&audioformat=mp32&order=popularity_total`;
 
   if (currentSearch) {
