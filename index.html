@@ -2319,8 +2319,15 @@ function handleTrackEnd() {
   nextTrack();                         // handles queue, shuffle and end-of-list auto-load
 }
 audio.addEventListener('ended', handleTrackEnd);
+// Fallback: some streams never fire "ended" (duration mismatch / stall at the very end)
+audio.addEventListener('timeupdate', () => {
+  if (playerClosing || !userWantsPlay || advancing) return;
+  const d = audio.duration;
+  if (isFinite(d) && d > 1 && !audio.seeking && audio.currentTime >= d - 0.25) handleTrackEnd();
+});
 
 audio.addEventListener('playing', () => { consecutiveErrors = 0; errorRetries = 0; });
+audio.addEventListener('loadstart', () => { advancing = false; });
 
 audio.addEventListener('error', () => {
   if (playerClosing || !audio.getAttribute('src')) return;
@@ -2350,6 +2357,7 @@ setInterval(() => {
   if (audio.ended) { handleTrackEnd(); return; }
   if (!userWantsPlay || audio.paused) { wdStall = 0; wdLastTime = audio.currentTime; return; }
   if (audio.currentTime === wdLastTime) {
+    if (isFinite(audio.duration) && audio.duration > 1 && audio.currentTime >= audio.duration - 3) { wdStall = 0; handleTrackEnd(); return; }
     wdStall++;
     if (wdStall >= 8) {                       // ~16 s with no progress
       wdStall = 0;
