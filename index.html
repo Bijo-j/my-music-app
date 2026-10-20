@@ -1198,7 +1198,10 @@ async function loadTracks(reset = true) {
     tracks = [];
     currentIndex = -1;
     // ── Random start on fresh manual loads; search stays deterministic ──
-    if (!currentSearch) {
+    if (!currentSearch && currentSource === 'jiosaavn' && ['malayalam', 'tamil', 'hindi'].includes(currentGenre)) {
+      saavnPage = 1;                                       // latest songs: always start from the first page
+      jamendoOffset = 0;
+    } else if (!currentSearch) {
       saavnPage = 1 + Math.floor(Math.random() * 3);       // random page 1–3
       jamendoOffset = Math.floor(Math.random() * 200);     // random offset
     } else {
@@ -1230,6 +1233,18 @@ async function loadSaavn(reset) {
     'hindi': { label: '🎵 Hindi Songs', queries: ['hindi hits', 'bollywood', 'arijit singh', 'lata mangeshkar', 'kishore kumar', 'shreya ghoshal'] },
   };
 
+  // Malayalam / Tamil / Hindi tabs show only LATEST songs (older songs are reachable via search)
+  const LATEST_QUERIES = (() => {
+    const y = new Date().getFullYear();
+    return {
+      'malayalam': [`new malayalam songs ${y}`, `malayalam latest ${y}`, `malayalam new release`, `new malayalam songs ${y - 1}`],
+      'tamil':     [`new tamil songs ${y}`, `tamil latest ${y}`, `tamil new release`, `new tamil songs ${y - 1}`],
+      'hindi':     [`new hindi songs ${y}`, `hindi latest ${y}`, `bollywood new release`, `new hindi songs ${y - 1}`],
+    };
+  })();
+  const latestMode = !currentSearch && !!LATEST_QUERIES[currentGenre];
+  const minYear = new Date().getFullYear() - 1;   // current year + previous year count as "latest"
+
   let queries;
   if (currentSearch) {
     el.tracksTitle.textContent = `🔍 "${currentSearch}"`;
@@ -1238,8 +1253,8 @@ async function loadSaavn(reset) {
   } else {
     const info = langMap[currentGenre] || langMap['indian-all'];
     el.tracksTitle.textContent = info.label;
-    el.tracksSub.textContent = 'Full songs';
-    queries = info.queries;
+    el.tracksSub.textContent = latestMode ? 'Latest songs' : 'Full songs';
+    queries = latestMode ? LATEST_QUERIES[currentGenre] : info.queries;
   }
 
   if (reset && !currentSearch) {
@@ -1267,7 +1282,7 @@ async function loadSaavn(reset) {
   };
   const allowedLangs = LANG_FILTERS[currentGenre];
 
-  const results = allowedLangs
+  let results = allowedLangs
     ? rawResults.filter(song => {
         const songLang = String(song.language || '').toLowerCase().trim();
         // If API doesn't return language, keep the song (don't over-filter)
@@ -1275,6 +1290,19 @@ async function loadSaavn(reset) {
         return allowedLangs.some(l => songLang.includes(l));
       })
     : rawResults;
+
+  // Latest-only filter for the language tabs (search is never filtered by year)
+  if (latestMode) {
+    const songYear = s => {
+      const d = String(s.releaseDate || s.release_date || '').match(/(19|20)\d{2}/);
+      const y = parseInt(s.year || (d && d[0]) || '', 10);
+      return isNaN(y) ? 0 : y;
+    };
+    const songDate = s => Date.parse(s.releaseDate || s.release_date || '') || (songYear(s) ? Date.UTC(songYear(s), 0, 1) : 0);
+    results = results
+      .filter(s => { const y = songYear(s); return y === 0 || y >= minYear; })   // unknown year: keep
+      .sort((a, b) => songDate(b) - songDate(a));                                // newest first
+  }
 
   const existingIds = new Set(tracks.map(t => t.id));
 
@@ -2319,9 +2347,17 @@ function handleTrackEnd() {
   nextTrack();                         // handles queue, shuffle and end-of-list auto-load
 }
 audio.addEventListener('ended', handleTrackEnd);
+// Bluetooth stacks often pause the element right at the end instead of firing "ended"
+audio.addEventListener('pause', () => {
+  if (playerClosing || !userWantsPlay || advancing) return;
+  const d = audio.duration;
+  if (audio.ended || (isFinite(d) && d > 1 && !audio.seeking && audio.currentTime >= d - 1)) handleTrackEnd();
+});
 // Fallback: some streams never fire "ended" (duration mismatch / stall at the very end)
 audio.addEventListener('timeupdate', () => {
-  if (playerClosing || !userWantsPlay || advancing) return;
+  if (playerClosing || !userWantsPlay) return;
+  if (audioCtx && audioCtx.state !== 'running') resumeAudioCtx();   // keep Web Audio alive after a Bluetooth switch
+  if (advancing) return;
   const d = audio.duration;
   if (isFinite(d) && d > 1 && !audio.seeking && audio.currentTime >= d - 0.25) handleTrackEnd();
 });
@@ -2397,13 +2433,23 @@ if ('mediaSession' in navigator) {
   set('seekforward',   (d) => { audio.currentTime = Math.min(audio.duration || 1e9, audio.currentTime + ((d && d.seekOffset) || 10)); });
   set('seekto',        (d) => { if (d && d.seekTime != null) audio.currentTime = d.seekTime; });
   audio.addEventListener('play',  () => { ms.playbackState = 'playing'; });
-  audio.addEventListener('pause', () => { ms.playbackState = 'paused'; });
+  audio.addEventListener('pause', () => {
+    // At the end of a song (or while switching) keep the session "playing" so the Bluetooth/OS
+    // media session is not dropped before the next song starts
+    if (userWantsPlay && (audio.ended || advancing)) return;
+    ms.playbackState = 'paused';
+  });
 }
 // Audio context can get suspended when a Bluetooth device connects/disconnects or the screen locks
 document.addEventListener('visibilitychange', () => { if (!document.hidden && userWantsPlay) resumeAudioCtx(); });
 audio.addEventListener('play', resumeAudioCtx);
 if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
-  navigator.mediaDevices.addEventListener('devicechange', () => { if (userWantsPlay) resumeAudioCtx(); });
+  navigator.mediaDevices.addEventListener('devicechange', () => {
+    if (!userWantsPlay) return;
+    resumeAudioCtx();
+    // Connecting a Bluetooth device can pause the element silently — continue playback
+    setTimeout(() => { if (userWantsPlay && audio.paused && !audio.ended && audio.getAttribute('src')) safePlay(); }, 800);
+  });
 }
 
 audio.addEventListener('timeupdate', () => {
@@ -2739,7 +2785,9 @@ function setupAudioChain() {
   if (audioCtx) return;
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback' });
-    audioCtx.onstatechange = () => { if (userWantsPlay && audioCtx.state !== 'running' && !document.hidden) audioCtx.resume().catch(() => {}); };
+    // Bluetooth connect/disconnect or a lock screen can suspend the context — resume even in background,
+    // otherwise the track freezes and never reaches "ended" (so next song never starts by itself)
+    audioCtx.onstatechange = () => { if (userWantsPlay && audioCtx.state !== 'running') audioCtx.resume().catch(() => {}); };
     sourceNode = audioCtx.createMediaElementSource(audio);
 
     bassFilter = audioCtx.createBiquadFilter();
