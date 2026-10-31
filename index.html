@@ -1500,7 +1500,13 @@ async function loadJamendo(reset) {
 // ══════════════════════════════════════════════════════════
 // AUTO-LOAD NEXT WHEN LAST SONG ENDS
 // ══════════════════════════════════════════════════════════
+let autoLoadingNext = false;
 async function autoLoadAndPlayNext() {
+  if (autoLoadingNext) return;          // watchdog / ended / Bluetooth must not start a 2nd load (caused repeats)
+  autoLoadingNext = true;
+  try { await autoLoadAndPlayNextInner(); } finally { autoLoadingNext = false; }
+}
+async function autoLoadAndPlayNextInner() {
   const prevLength = tracks.length;
   showToast('⏳ Loading more songs…');
 
@@ -2201,14 +2207,38 @@ let userWantsPlay = false;
 let errorRetries = 0;
 let consecutiveErrors = 0;
 
-function safePlay() {
+function safePlay(retry = 0) {
   resumeAudioCtx();
   const p = audio.play();
   if (p && p.catch) p.catch(err => {
     if (err && err.name === 'AbortError') return;   // src changed while loading — normal
+    // Bluetooth route changes / background starts can reject play() — retry instead of going silent
+    if (userWantsPlay && retry < 4) {
+      setTimeout(() => { if (userWantsPlay && audio.paused && audio.getAttribute('src')) safePlay(retry + 1); }, 600 * (retry + 1));
+      return;
+    }
     showToast('⚠️ Could not play');
   });
 }
+
+// Resume a reloaded stream at its old position; only one pending listener, always dropped on a new song
+let pendingResume = null;
+function cancelPendingResume() {
+  if (pendingResume) { audio.removeEventListener('loadedmetadata', pendingResume); pendingResume = null; }
+}
+function reloadAtPosition(pos) {
+  cancelPendingResume();
+  audio.load();
+  pendingResume = function () {
+    cancelPendingResume();
+    if (pos > 1) { try { audio.currentTime = pos; } catch (e) {} }
+    safePlay();
+  };
+  audio.addEventListener('loadedmetadata', pendingResume);
+}
+
+let trackSerial = 0;        // increments for every song that is started
+let endHandledSerial = -1;  // song for which "ended" was already handled (prevents double skip / repeat)
 
 function playTrackData(t, addToHistory = false) {
   if (currentPlayStart > 0) {
@@ -2217,6 +2247,8 @@ function playTrackData(t, addToHistory = false) {
 
   userWantsPlay = true;
   errorRetries = 0;
+  cancelPendingResume();
+  trackSerial++;
   const token = ++fadeToken;
   const startNew = () => {
     audio.src = t.audio;
@@ -2298,7 +2330,9 @@ function nextTrack() {
 
   // 2. Shuffle mode — pick random
   if (shuffleOn) {
-    playTrack(Math.floor(Math.random() * tracks.length));
+    let r = Math.floor(Math.random() * tracks.length);
+    if (tracks.length > 1) { while (r === currentIndex) r = Math.floor(Math.random() * tracks.length); }
+    playTrack(r);
     return;
   }
 
@@ -2341,9 +2375,11 @@ audio.addEventListener('pause', () => {
 let advancing = false;
 function handleTrackEnd() {
   if (advancing) return;               // ended + watchdog must not double-skip
+  if (endHandledSerial === trackSerial) return;   // this song already moved on
+  endHandledSerial = trackSerial;
   advancing = true;
   setTimeout(() => { advancing = false; }, 1500);
-  if (repeatOn) { audio.currentTime = 0; safePlay(); return; }
+  if (repeatOn) { endHandledSerial = -1; audio.currentTime = 0; safePlay(); return; }
   nextTrack();                         // handles queue, shuffle and end-of-list auto-load
 }
 audio.addEventListener('ended', handleTrackEnd);
@@ -2363,6 +2399,10 @@ audio.addEventListener('timeupdate', () => {
 });
 
 audio.addEventListener('playing', () => { consecutiveErrors = 0; errorRetries = 0; });
+audio.addEventListener('seeked', () => {
+  const d = audio.duration;
+  if (isFinite(d) && audio.currentTime < d - 2) endHandledSerial = -1;
+});
 audio.addEventListener('loadstart', () => { advancing = false; });
 
 audio.addEventListener('error', () => {
@@ -2370,13 +2410,7 @@ audio.addEventListener('error', () => {
   // 1st try: reload the same song at the same position (expired/glitched stream)
   if (errorRetries < 1) {
     errorRetries++;
-    const pos = audio.currentTime || 0;
-    audio.load();
-    audio.addEventListener('loadedmetadata', function once() {
-      audio.removeEventListener('loadedmetadata', once);
-      if (pos > 1) { try { audio.currentTime = pos; } catch (e) {} }
-      safePlay();
-    });
+    reloadAtPosition(audio.currentTime || 0);
     return;
   }
   // then skip to the next song (stop after 5 failures in a row)
@@ -2391,18 +2425,15 @@ let wdLastTime = -1, wdStall = 0;
 setInterval(() => {
   if (playerClosing || !audio.getAttribute('src')) return;
   if (audio.ended) { handleTrackEnd(); return; }
+  // New song loaded but never started (play() was blocked during a Bluetooth switch) — start it
+  if (userWantsPlay && audio.paused && !audio.ended && !advancing && audio.readyState >= 2 && audio.currentTime < 1) safePlay();
   if (!userWantsPlay || audio.paused) { wdStall = 0; wdLastTime = audio.currentTime; return; }
   if (audio.currentTime === wdLastTime) {
     if (isFinite(audio.duration) && audio.duration > 1 && audio.currentTime >= audio.duration - 3) { wdStall = 0; handleTrackEnd(); return; }
     wdStall++;
     if (wdStall >= 8) {                       // ~16 s with no progress
       wdStall = 0;
-      if (errorRetries < 1) { errorRetries++; const pos = audio.currentTime; audio.load();
-        audio.addEventListener('loadedmetadata', function once() {
-          audio.removeEventListener('loadedmetadata', once);
-          if (pos > 1) { try { audio.currentTime = pos; } catch (e) {} }
-          safePlay();
-        });
+      if (errorRetries < 1) { errorRetries++; reloadAtPosition(audio.currentTime);
       } else { showToast('⚠️ Stream stalled — next song'); nextTrack(); }
     }
   } else { wdStall = 0; wdLastTime = audio.currentTime; }
