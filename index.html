@@ -1097,15 +1097,20 @@ function fmtTime(sec) {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 function decodeEntities(str) {
-  return String(str || '')
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ');
+  let out = String(str || '');
+  // a few passes so double-encoded text like &amp;quot; is fully cleaned
+  for (let i = 0; i < 3 && /&(#\d+|#x[0-9a-f]+|quot|apos|amp|lt|gt|nbsp);/i.test(out); i++) {
+    out = out
+      .replace(/&#(\d+);/g, (m, n) => String.fromCodePoint(+n))
+      .replace(/&#x([0-9a-f]+);/gi, (m, n) => String.fromCodePoint(parseInt(n, 16)))
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&');
+  }
+  return out;
 }
 function esc(s) {
   const d = decodeEntities(s);
@@ -1394,7 +1399,7 @@ async function loadSaavn(reset) {
     seenKeys.add(key);
 
     const track = {
-      id, title, artist, art, audio: audioUrl,
+      id, title: decodeEntities(title), artist: decodeEntities(artist), art, audio: audioUrl,
       duration: parseInt(song.duration) || 0,
     };
     newTracks.push(track);
@@ -1478,8 +1483,8 @@ async function loadJamendo(reset) {
 
   const newTracks = (data.results || []).map(t => ({
     id: t.id,
-    title: t.name,
-    artist: t.artist_name,
+    title: decodeEntities(t.name),
+    artist: decodeEntities(t.artist_name),
     art: t.image || t.album_image || '',
     audio: t.audio,
     duration: parseInt(t.duration) || 0,
@@ -1500,11 +1505,13 @@ async function loadJamendo(reset) {
 // ══════════════════════════════════════════════════════════
 // AUTO-LOAD NEXT WHEN LAST SONG ENDS
 // ══════════════════════════════════════════════════════════
-let autoLoadingNext = false;
+let autoLoadingNext = false, autoLoadStartedAt = 0;
 async function autoLoadAndPlayNext() {
-  if (autoLoadingNext) return;          // watchdog / ended / Bluetooth must not start a 2nd load (caused repeats)
-  autoLoadingNext = true;
-  try { await autoLoadAndPlayNextInner(); } finally { autoLoadingNext = false; }
+  // watchdog / ended / Bluetooth must not start a 2nd load (caused repeats) — but a load hung by a locked screen must not block forever
+  if (autoLoadingNext && Date.now() - autoLoadStartedAt < 25000) return;
+  autoLoadingNext = true; autoLoadStartedAt = Date.now();
+  const mine = autoLoadStartedAt;
+  try { await autoLoadAndPlayNextInner(); } finally { if (autoLoadStartedAt === mine) autoLoadingNext = false; }
 }
 async function autoLoadAndPlayNextInner() {
   const prevLength = tracks.length;
@@ -2271,13 +2278,13 @@ function playTrackData(t, addToHistory = false) {
 
   el.player.classList.add('show');
   el.playerArt.src = t.art || placeholderArt();
-  el.playerTitle.textContent = t.title;
-  el.playerArtist.textContent = t.artist;
+  el.playerTitle.textContent = decodeEntities(t.title);
+  el.playerArtist.textContent = decodeEntities(t.artist);
 
   el.npArt.src = t.art || placeholderArt();
   el.npBg.style.backgroundImage = `url('${t.art || placeholderArt()}')`;
-  el.npTitle.textContent = t.title;
-  el.npArtist.textContent = t.artist;
+  el.npTitle.textContent = decodeEntities(t.title);
+  el.npArtist.textContent = decodeEntities(t.artist);
 
   const key = tid(t);
   playCounts[key] = (playCounts[key] || 0) + 1;
@@ -2307,9 +2314,38 @@ function fadeAudio(from, to, duration, done, token) {
   requestAnimationFrame(step);
 }
 
+// Resume the current song. If the stream died while the screen was locked, reload it at the same position
+function resumePlayback() {
+  userWantsPlay = true;
+  resumeAudioCtx();
+  if (!audio.getAttribute('src')) return;
+  if (audio.ended) endHandledSerial = -1;
+  const dead = audio.error || audio.networkState === 3 || (audio.readyState === 0 && audio.networkState === 1);
+  if (dead) { errorRetries = 0; reloadAtPosition(audio.ended ? 0 : (audio.currentTime || 0)); return; }
+  safePlay();
+}
+// After the phone is unlocked / app returns to front: get a stuck or silently-stopped song moving again
+function recoverAfterUnlock() {
+  updatePlayButton();
+  if (playerClosing || !userWantsPlay || !audio.getAttribute('src')) return;
+  resumeAudioCtx();
+  const d = audio.duration;
+  if (audio.ended || (isFinite(d) && d > 1 && audio.currentTime >= d - 0.5)) {
+    endHandledSerial = -1; advancing = false; handleTrackEnd(); return;
+  }
+  if (audio.paused || audio.error) { resumePlayback(); return; }
+  const t0 = audio.currentTime;
+  setTimeout(() => {   // looks "playing" but frozen → reload from the same spot
+    if (userWantsPlay && !audio.paused && !audio.seeking && !audio.ended && audio.currentTime === t0) reloadAtPosition(t0);
+  }, 2500);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) recoverAfterUnlock(); });
+window.addEventListener('pageshow', recoverAfterUnlock);
+window.addEventListener('focus', recoverAfterUnlock);
+
 function togglePlay() {
   if (!audio.src) { if (tracks.length) playTrack(0); return; }
-  if (audio.paused) { userWantsPlay = true; safePlay(); }
+  if (audio.paused) { resumePlayback(); }
   else { userWantsPlay = false; audio.pause(); }
 }
 function nextTrack() {
@@ -2448,14 +2484,14 @@ function updateMediaSession(t) {
   try {
     const art = t.art && /^https?:/i.test(t.art) ? [{ src: t.art, sizes: '512x512' }] : [];
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: t.title || '', artist: t.artist || '', album: t.album || '', artwork: art
+      title: decodeEntities(t.title), artist: decodeEntities(t.artist), album: decodeEntities(t.album), artwork: art
     });
   } catch (e) {}
 }
 if ('mediaSession' in navigator) {
   const ms = navigator.mediaSession;
   const set = (a, fn) => { try { ms.setActionHandler(a, fn); } catch (e) {} };
-  set('play',          () => { userWantsPlay = true; safePlay(); });
+  set('play',          () => { resumePlayback(); });
   set('pause',         () => { userWantsPlay = false; audio.pause(); });
   set('stop',          () => { userWantsPlay = false; audio.pause(); });
   set('previoustrack', () => prevTrack());
