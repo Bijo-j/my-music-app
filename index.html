@@ -2409,10 +2409,12 @@ audio.addEventListener('pause', () => {
   }
 });
 let advancing = false;
+let lastAutoAdvanceAt = 0;   // time the last song ended on its own (used to ignore Bluetooth's stray pause)
 function handleTrackEnd() {
   if (advancing) return;               // ended + watchdog must not double-skip
   if (endHandledSerial === trackSerial) return;   // this song already moved on
   endHandledSerial = trackSerial;
+  lastAutoAdvanceAt = Date.now();
   advancing = true;
   setTimeout(() => { advancing = false; }, 1500);
   if (repeatOn) { endHandledSerial = -1; audio.currentTime = 0; safePlay(); return; }
@@ -2492,8 +2494,17 @@ if ('mediaSession' in navigator) {
   const ms = navigator.mediaSession;
   const set = (a, fn) => { try { ms.setActionHandler(a, fn); } catch (e) {} };
   set('play',          () => { resumePlayback(); });
-  set('pause',         () => { userWantsPlay = false; audio.pause(); });
-  set('stop',          () => { userWantsPlay = false; audio.pause(); });
+  // Bluetooth devices often send a "pause" right as a song finishes (or just after the next one starts).
+  // That must not be treated as the user pausing, otherwise the next song never plays.
+  const btPause = () => {
+    const d = audio.duration;
+    const nearEnd = isFinite(d) && d > 1 && (d - audio.currentTime) <= 2;
+    if (userWantsPlay && (audio.ended || nearEnd)) { audio.pause(); handleTrackEnd(); return; }
+    if (userWantsPlay && (advancing || Date.now() - lastAutoAdvanceAt < 3000)) { if (audio.paused) safePlay(); return; }
+    userWantsPlay = false; audio.pause();
+  };
+  set('pause',         btPause);
+  set('stop',          btPause);
   set('previoustrack', () => prevTrack());
   set('nexttrack',     () => nextTrack());
   set('seekbackward',  (d) => { audio.currentTime = Math.max(0, audio.currentTime - ((d && d.seekOffset) || 10)); });
