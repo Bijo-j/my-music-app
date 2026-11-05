@@ -2308,10 +2308,10 @@ function fadeAudio(from, to, duration, done, token) {
     if (document.hidden) { audio.volume = to; if (done) done(); return; }          // never stall in background
     const p = Math.min((now - start) / duration, 1);
     audio.volume = Math.max(0, Math.min(1, from + (to - from) * p));
-    if (p < 1) requestAnimationFrame(step);
+    if (p < 1) setTimeout(() => step(performance.now()), 30);   // timers keep running with the screen locked; rAF does not
     else if (done) done();
   };
-  requestAnimationFrame(step);
+  setTimeout(() => step(performance.now()), 0);
 }
 
 // Resume the current song. If the stream died while the screen was locked, reload it at the same position
