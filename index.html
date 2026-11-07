@@ -2244,6 +2244,49 @@ function reloadAtPosition(pos) {
   audio.addEventListener('loadedmetadata', pendingResume);
 }
 
+// ── Pre-download the NEXT song while the current one plays ──
+// With the screen locked the phone may stall the network in the gap between two songs, so the next song
+// never starts. Having it already in memory makes the switch instant and independent of the network.
+let preShuffleIdx = -1;
+let preFetch = { url: '', blobUrl: '' };
+let preFetching = '';
+let curBlobUrl = '';
+function peekNextTrack() {
+  if (repeatOn) return null;
+  if (queue.length) { const n = queue[0]; const i = tracks.findIndex(t => tid(t) === tid(n)); return i >= 0 ? tracks[i] : n; }
+  if (!tracks.length) return null;
+  if (shuffleOn) {
+    if (preShuffleIdx < 0 || preShuffleIdx >= tracks.length || (tracks.length > 1 && preShuffleIdx === currentIndex)) {
+      let r = Math.floor(Math.random() * tracks.length);
+      if (tracks.length > 1) { while (r === currentIndex) r = Math.floor(Math.random() * tracks.length); }
+      preShuffleIdx = r;
+    }
+    return tracks[preShuffleIdx];
+  }
+  return currentIndex < tracks.length - 1 ? tracks[currentIndex + 1] : null;
+}
+function prefetchNext() {
+  try {
+    const n = peekNextTrack();
+    if (!n || !/^https?:/i.test(n.audio || '') || preFetch.url === n.audio || preFetching === n.audio) return;
+    const url = n.audio;
+    preFetching = url;
+    fetch(url).then(r => { if (!r.ok) throw new Error('prefetch'); return r.blob(); }).then(b => {
+      if (preFetch.blobUrl) URL.revokeObjectURL(preFetch.blobUrl);
+      preFetch = { url, blobUrl: URL.createObjectURL(b) };
+    }).catch(() => {}).finally(() => { if (preFetching === url) preFetching = ''; });
+  } catch (e) {}
+}
+function srcFor(url) {
+  const old = curBlobUrl;
+  let out = url;
+  if (preFetch.url === url && preFetch.blobUrl) { out = preFetch.blobUrl; curBlobUrl = out; preFetch = { url: '', blobUrl: '' }; }
+  else curBlobUrl = '';
+  if (old) setTimeout(() => URL.revokeObjectURL(old), 5000);
+  return out;
+}
+audio.addEventListener('playing', () => { setTimeout(prefetchNext, 1500); });
+
 let trackSerial = 0;        // increments for every song that is started
 let endHandledSerial = -1;  // song for which "ended" was already handled (prevents double skip / repeat)
 
@@ -2258,7 +2301,7 @@ function playTrackData(t, addToHistory = false) {
   trackSerial++;
   const token = ++fadeToken;
   const startNew = () => {
-    audio.src = t.audio;
+    audio.src = srcFor(t.audio);
     audio.volume = 1;
     safePlay();
   };
@@ -2267,7 +2310,7 @@ function playTrackData(t, addToHistory = false) {
   if (crossfadeEnabled && !audio.paused && audio.src && !document.hidden) {
     fadeAudio(audio.volume, 0, 300, () => {
       if (token !== fadeToken) return;
-      audio.src = t.audio;
+      audio.src = srcFor(t.audio);
       audio.volume = 0;
       safePlay();
       fadeAudio(0, 1, 500, null, token);
@@ -2366,7 +2409,8 @@ function nextTrack() {
 
   // 2. Shuffle mode — pick random
   if (shuffleOn) {
-    let r = Math.floor(Math.random() * tracks.length);
+    let r = (preShuffleIdx >= 0 && preShuffleIdx < tracks.length && (tracks.length < 2 || preShuffleIdx !== currentIndex)) ? preShuffleIdx : Math.floor(Math.random() * tracks.length);
+    preShuffleIdx = -1;
     if (tracks.length > 1) { while (r === currentIndex) r = Math.floor(Math.random() * tracks.length); }
     playTrack(r);
     return;
