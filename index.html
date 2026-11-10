@@ -2248,9 +2248,23 @@ function reloadAtPosition(pos) {
 // With the screen locked the phone may stall the network in the gap between two songs, so the next song
 // never starts. Having it already in memory makes the switch instant and independent of the network.
 let preShuffleIdx = -1;
-let preFetch = { url: '', blobUrl: '' };
+const PREFETCH_AHEAD = 3;          // keep the next few songs in memory, so several auto-advances work with the screen locked
+let preCache = new Map();          // song url -> blob url (downloaded, not yet played)
 let preFetching = '';
+let preFailedAt = {};              // url -> time of last failed download (avoid hammering)
 let curBlobUrl = '';
+let trackStartedAt = Date.now();
+let loadKickSerial = -1;
+function upcomingTracks(n) {
+  const out = [];
+  if (repeatOn) return out;
+  const seen = new Set();
+  const add = (t) => { if (t && !seen.has(tid(t)) && out.length < n) { seen.add(tid(t)); out.push(t); } };
+  queue.forEach(q => { const i = tracks.findIndex(t => tid(t) === tid(q)); add(i >= 0 ? tracks[i] : q); });
+  if (shuffleOn) { add(peekNextTrack()); return out; }
+  for (let i = currentIndex + 1; i < tracks.length && out.length < n; i++) add(tracks[i]);
+  return out;
+}
 function peekNextTrack() {
   if (repeatOn) return null;
   if (queue.length) { const n = queue[0]; const i = tracks.findIndex(t => tid(t) === tid(n)); return i >= 0 ? tracks[i] : n; }
@@ -2267,25 +2281,39 @@ function peekNextTrack() {
 }
 function prefetchNext() {
   try {
-    const n = peekNextTrack();
-    if (!n || !/^https?:/i.test(n.audio || '') || preFetch.url === n.audio || preFetching === n.audio) return;
+    if (preFetching) return;
+    const list = upcomingTracks(PREFETCH_AHEAD).filter(t => /^https?:/i.test(t.audio || ''));
+    // free memory of songs that are no longer coming up
+    const keep = new Set(list.map(t => t.audio));
+    preCache.forEach((blobUrl, u) => { if (!keep.has(u)) { URL.revokeObjectURL(blobUrl); preCache.delete(u); } });
+    const n = list.find(t => !preCache.has(t.audio) && Date.now() - (preFailedAt[t.audio] || 0) > 15000);
+    if (!n) return;
     const url = n.audio;
     preFetching = url;
     fetch(url).then(r => { if (!r.ok) throw new Error('prefetch'); return r.blob(); }).then(b => {
-      if (preFetch.blobUrl) URL.revokeObjectURL(preFetch.blobUrl);
-      preFetch = { url, blobUrl: URL.createObjectURL(b) };
-    }).catch(() => {}).finally(() => { if (preFetching === url) preFetching = ''; });
-  } catch (e) {}
+      preCache.set(url, URL.createObjectURL(b));
+      preFetching = '';
+      prefetchNext();                      // continue with the next song in line
+    }).catch(() => { preFailedAt[url] = Date.now(); }).finally(() => { if (preFetching === url) preFetching = ''; });
+  } catch (e) { preFetching = ''; }
 }
 function srcFor(url) {
   const old = curBlobUrl;
   let out = url;
-  if (preFetch.url === url && preFetch.blobUrl) { out = preFetch.blobUrl; curBlobUrl = out; preFetch = { url: '', blobUrl: '' }; }
+  if (preCache.has(url)) { out = preCache.get(url); curBlobUrl = out; preCache.delete(url); }
   else curBlobUrl = '';
   if (old) setTimeout(() => URL.revokeObjectURL(old), 5000);
   return out;
 }
-audio.addEventListener('playing', () => { setTimeout(prefetchNext, 1500); });
+audio.addEventListener('playing', () => { prefetchNext(); setTimeout(prefetchNext, 1500); });
+// Events (unlike timers) keep firing while the screen is locked — use them to keep the look-ahead filled
+let lastPrefetchTick = 0;
+audio.addEventListener('timeupdate', () => {
+  const now = Date.now();
+  if (now - lastPrefetchTick < 3000) return;
+  lastPrefetchTick = now;
+  prefetchNext();
+});
 
 let trackSerial = 0;        // increments for every song that is started
 let endHandledSerial = -1;  // song for which "ended" was already handled (prevents double skip / repeat)
@@ -2299,6 +2327,7 @@ function playTrackData(t, addToHistory = false) {
   errorRetries = 0;
   cancelPendingResume();
   trackSerial++;
+  trackStartedAt = Date.now();
   const token = ++fadeToken;
   const startNew = () => {
     audio.src = srcFor(t.audio);
@@ -2376,6 +2405,8 @@ function recoverAfterUnlock() {
   if (audio.ended || (isFinite(d) && d > 1 && audio.currentTime >= d - 0.5)) {
     endHandledSerial = -1; advancing = false; handleTrackEnd(); return;
   }
+  // The next song was selected while the screen was locked but never loaded/started — load it again
+  if (audio.readyState < 2 && audio.currentTime < 1 && Date.now() - trackStartedAt > 3000) { loadKickSerial = trackSerial; reloadAtPosition(0); return; }
   if (audio.paused || audio.error) { resumePlayback(); return; }
   const t0 = audio.currentTime;
   setTimeout(() => {   // looks "playing" but frozen → reload from the same spot
@@ -2507,6 +2538,8 @@ let wdLastTime = -1, wdStall = 0;
 setInterval(() => {
   if (playerClosing || !audio.getAttribute('src')) return;
   if (audio.ended) { handleTrackEnd(); return; }
+  // New song never got any data (network stalled while locked) — retry the load once
+  if (userWantsPlay && !advancing && audio.readyState < 2 && audio.currentTime < 1 && Date.now() - trackStartedAt > 10000 && loadKickSerial !== trackSerial) { loadKickSerial = trackSerial; reloadAtPosition(0); return; }
   // New song loaded but never started (play() was blocked during a Bluetooth switch) — start it
   if (userWantsPlay && audio.paused && !audio.ended && !advancing && audio.readyState >= 2 && audio.currentTime < 1) safePlay();
   if (!userWantsPlay || audio.paused) { wdStall = 0; wdLastTime = audio.currentTime; return; }
